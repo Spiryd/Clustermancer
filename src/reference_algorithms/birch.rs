@@ -1,9 +1,57 @@
 use tokio_stream::StreamExt;
 use futures::stream::Stream;
 
-// Define a type alias for a boxed future with a vector of i32
 
-// Function that takes a stream, processes it, and returns a future with the results
+#[derive(Debug, Clone)]
+struct ClusteringFeature {
+    n: usize,
+    ls: Vec<f64>,
+    ss: Vec<f64>,
+}
+
+impl ClusteringFeature {
+    fn centroid(self) -> Vec<f64> {
+        self.ls.iter().map(|&l| l / self.n as f64).collect()
+    }
+
+    fn radius(self) -> Vec<f64> {
+        let a: Vec<f64> = self.ss.iter().map(|&s| s / self.n as f64).collect();
+        let b: Vec<f64> = self.centroid().iter().map(|&c| c * c).collect();
+        a.iter().zip(b.iter()).map(|(&a, &b)| (a - b).sqrt()).collect()
+    }
+
+    fn distance_0(self, other: Self) -> Vec<f64> {
+        let a: Vec<f64> = self.centroid();
+        let b: Vec<f64> = other.centroid();
+        a.iter().zip(b.iter()).map(|(&a, &b)| (a - b).abs()).collect()
+    }
+
+    fn distance_1(self, other: Self) -> Vec<f64> {
+        todo!()
+    }
+
+    fn distance_2(self, other: Self) -> Vec<f64> {
+        todo!()
+    }
+}
+
+impl std::ops::Add for ClusteringFeature {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        let n = self.n + other.n;
+        let ls = self.ls.iter().zip(other.ls.iter()).map(|(&a, &b)| a + b).collect();
+        let ss = self.ss.iter().zip(other.ss.iter()).map(|(&a, &b)| a + b).collect();
+        ClusteringFeature { n, ls, ss }
+    }
+}
+
+struct CFNode {
+    feature: ClusteringFeature,
+    children: Vec<CFNode>,
+    is_leaf: bool,
+}
+
 pub async fn birch<S>(stream: S) -> Vec<i32>
 where
     S: Stream<Item = i32> + Unpin,

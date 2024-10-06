@@ -8,19 +8,25 @@
         "type": "tabs",
         "children": [
           {
-            "id": "ee57a6de676428cf",
+            "id": "e8ec132d56629d51",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Knowledge Base.md",
+                "file": "key concepts/Concept Drift.md",
                 "mode": "source",
                 "source": false
               }
             }
-          },
+          }
+        ]
+      },
+      {
+        "id": "c2e71744a6e28f2c",
+        "type": "tabs",
+        "children": [
           {
-            "id": "07c517a57639a2cd",
+            "id": "ee57a6de676428cf",
             "type": "leaf",
             "state": {
               "type": "graph",
@@ -77,7 +83,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200.5
   },
   "right": {
     "id": "5624898262b2b71e",
@@ -93,7 +99,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Knowledge Base.md",
+                "file": "key concepts/Concept Drift.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -110,7 +116,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Knowledge Base.md",
+                "file": "key concepts/Concept Drift.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -133,11 +139,12 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Knowledge Base.md"
+                "file": "key concepts/Concept Drift.md"
               }
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
@@ -154,11 +161,23 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "ee57a6de676428cf",
+  "active": "e8ec132d56629d51",
   "lastOpenFiles": [
+    "key concepts/Concept Drift.md",
+    "Pasted image 20241006173802.png",
+    "key concepts/Key Concepts.md",
+    "categories/Algorithm Categories.md",
+    "algorithms/Data Stream Clustering Algorithms.md",
     "algorithms/BIRCH.md",
-    "data structures/Clustering Feature Tree.md",
     "Knowledge Base.md",
+    "Untitled",
+    "key concepts",
+    "2024-10-06.md",
+    "Untitled.canvas",
+    "categories/Hierarchical.md",
+    "categories",
+    "Hierar.md",
+    "data structures/Clustering Feature Tree.md",
     "data structures",
     "algorithms",
     "Clustermancer.md",
