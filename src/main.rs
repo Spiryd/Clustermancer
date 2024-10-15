@@ -1,18 +1,12 @@
-use futures::stream;
-
 mod reference_algorithms;
-use reference_algorithms::birch::birch;
+use reference_algorithms::birch::Birch;
 
-#[tokio::main]
-async fn main() {
-    // Create a simulated data stream of integers
-    let data_stream = stream::iter(vec![1, 2, 3, 4, 5]);
+fn main() {
+    let data_stream = (0..100).map(f64::from).map(|x| vec![x]);
 
-    // Process the stream and get the results
-    let results = birch(data_stream).await;
-
-    // Output the processed results
-    for result in results {
-        println!("Processed data: {}", result);
+    let mut birch = Birch::new(0.5, 2);
+    for data in data_stream {
+        birch.insert(data);
     }
+    println!("{:?}", birch);
 }

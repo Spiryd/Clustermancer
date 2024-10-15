@@ -5,6 +5,3 @@ edition = "2021"
 authors = ["Maksymilian Neumann<neumann.maks@gmail.com>"]
 
 [dependencies]
-tokio = { version = "1.40", features = ["full"] }
-tokio-stream = "0.1"
-futures = "0.3"

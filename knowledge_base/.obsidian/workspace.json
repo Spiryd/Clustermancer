@@ -6,7 +6,6 @@
       {
         "id": "2a23afef00da2232",
         "type": "tabs",
-        "dimension": 49.034749034749034,
         "children": [
           {
             "id": "3583bc36b23af46f",
@@ -14,25 +13,10 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "key concepts/Key Concepts.md",
+                "file": "Knowledge Base.md",
                 "mode": "source",
                 "source": false
               }
-            }
-          }
-        ]
-      },
-      {
-        "id": "e0a32d9c6392a2dc",
-        "type": "tabs",
-        "dimension": 50.965250965250966,
-        "children": [
-          {
-            "id": "e8ec132d56629d51",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {}
             }
           }
         ]
@@ -101,6 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "Knowledge Base.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -117,6 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "Knowledge Base.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -138,7 +124,9 @@
             "type": "leaf",
             "state": {
               "type": "outline",
-              "state": {}
+              "state": {
+                "file": "Knowledge Base.md"
+              }
             }
           }
         ],
@@ -159,28 +147,50 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "bfd42ae8be8aaa34",
+  "active": "3583bc36b23af46f",
   "lastOpenFiles": [
-    "key concepts/Key Concepts.md",
-    "Offline Refinement Strategy.md",
-    "Knowledge Base.md",
     "key concepts/Concept Drift.md",
     "key concepts/Time Window.md",
-    "Offline Refinemant Strategy.md",
-    "algorithms/BIRCH.md",
-    "Pasted image 20241006173802.png",
-    "categories/Algorithm Categories.md",
-    "algorithms/Data Stream Clustering Algorithms.md",
-    "Untitled",
-    "key concepts",
-    "2024-10-06.md",
+    "key concepts/Key Concepts.md",
+    "Presentations/Intro.md",
+    "Knowledge Base.md",
     "Untitled.canvas",
+    "[[Key.md",
+    "export/Wprowadzenie/plugin/chalkboard/img/whiteboard.png",
+    "export/Wprowadzenie/plugin/chalkboard/img/sponge.png",
+    "export/Wprowadzenie/plugin/chalkboard/img/chalk-yellow.png",
+    "export/Wprowadzenie/plugin/chalkboard/img/chalk-white.png",
+    "export/Wprowadzenie/plugin/chalkboard/img/chalk-red.png",
+    "export/Wprowadzenie/plugin/chalkboard/img/chalk-purple.png",
+    "export/Wprowadzenie/plugin/chalkboard/img/chalk-orange.png",
+    "export/Wprowadzenie/plugin/chalkboard/img/chalk-green.png",
+    "export/Wprowadzenie/plugin/chalkboard/img/chalk-blue.png",
+    "export/Wprowadzenie/plugin/chalkboard/img/boardmarker-yellow.png",
+    "export/Wprowadzenie/plugin/chalkboard/_style.css",
+    "export/Wprowadzenie/plugin/chalkboard/README.md",
+    "export/Wprowadzenie/plugin/chalkboard/style.css",
+    "export/Wprowadzenie/plugin/chalkboard/plugin (copy).js",
+    "export/Wprowadzenie/plugin/chalkboard/plugin.js",
+    "export/Wprowadzenie/plugin/chalkboard/img",
+    "export/Wprowadzenie/plugin/chalkboard",
+    "export/Wprowadzenie/plugin/chart/README.md",
+    "export/Wprowadzenie/plugin/chart/plugin.js",
+    "export/Wprowadzenie/plugin/chart/chart.min.js",
+    "export/Wprowadzenie/plugin/chart",
+    "export/Wprowadzenie/plugin/customcontrols/README.md",
+    "export/Wprowadzenie/plugin/customcontrols/style.css",
+    "export/Wprowadzenie/plugin/menu/CONTRIBUTING.md",
+    "export/Wprowadzenie/plugin/menu/README.md",
+    "categories/Algorithm Categories.md",
+    "algorithms/BIRCH.md",
+    "algorithms/Data Stream Clustering Algorithms.md",
+    "2024-10-14.md",
+    "Offline Refinement Strategy.md",
+    "Offline Refinemant Strategy.md",
+    "2024-10-06.md",
     "categories/Hierarchical.md",
-    "categories",
     "Hierar.md",
     "data structures/Clustering Feature Tree.md",
-    "data structures",
-    "algorithms",
     "Clustermancer.md",
     "Welcome.md",
     "create a link.md",
