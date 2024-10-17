@@ -4,16 +4,34 @@
     "type": "split",
     "children": [
       {
-        "id": "2a23afef00da2232",
+        "id": "00c08920df7eeec7",
         "type": "tabs",
         "children": [
           {
-            "id": "3583bc36b23af46f",
+            "id": "6de85719a4942031",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Knowledge Base.md",
+                "file": "Presentations/Intro.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "965e04ec0a9749ab",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "51c990abd433a322",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "key concepts/Concept Drift.md",
                 "mode": "source",
                 "source": false
               }
@@ -85,7 +103,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Knowledge Base.md",
+                "file": "Presentations/Intro.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +120,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Knowledge Base.md",
+                "file": "Presentations/Intro.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +143,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Knowledge Base.md"
+                "file": "Presentations/Intro.md"
               }
             }
           }
@@ -147,13 +165,13 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "3583bc36b23af46f",
+  "active": "6de85719a4942031",
   "lastOpenFiles": [
     "key concepts/Concept Drift.md",
-    "key concepts/Time Window.md",
-    "key concepts/Key Concepts.md",
     "Presentations/Intro.md",
+    "key concepts/Key Concepts.md",
     "Knowledge Base.md",
+    "key concepts/Time Window.md",
     "Untitled.canvas",
     "[[Key.md",
     "export/Wprowadzenie/plugin/chalkboard/img/whiteboard.png",
