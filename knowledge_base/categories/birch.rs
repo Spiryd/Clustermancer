@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 #[derive(Debug, Clone)]
 struct ClusteringFeature {
     n: usize,
@@ -20,6 +18,7 @@ impl ClusteringFeature {
         self.ls.iter().map(|&l| l / self.n as f64).collect()
     }
 
+    #[allow(dead_code)]
     fn radius(&self) -> f64 {
         (self.ss / self.n as f64) - (self.centroid().iter().map(|&c| c * c).sum::<f64>().sqrt())
     }
@@ -51,26 +50,27 @@ impl std::ops::Add for ClusteringFeature {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Copy)]
+struct NodeId(usize);
+
+#[derive(Debug)]
 enum CFNode {
     Leaf{
-        id: usize,
-        parent_id: Option<usize>,
+        id: NodeId,
         features: Vec<ClusteringFeature>,
-        prev: Option<usize>,
-        next: Option<usize>,
+        prev: Option<NodeId>,
+        next: Option<NodeId>,
     },
     NonLeaf {
-        id: usize,
-        parent_id: Option<usize>,
-        features: Vec<(ClusteringFeature, usize)>,
+        id: NodeId,
+        features: Vec<(ClusteringFeature, NodeId)>,
     },
 }
 
 #[derive(Debug)]
 struct CFTree {
     arena: Vec<CFNode>,
-    next_id: usize,
+    next_id: NodeId,
     threshold: f64,
     branching_factor: usize,
 }
@@ -79,7 +79,7 @@ impl CFTree {
     fn new(threshold: f64, branching_factor: usize) -> Self {
         CFTree {
             arena: Vec::new(),
-            next_id: 0,
+            next_id: NodeId(0),
             threshold,
             branching_factor,
         }
@@ -93,11 +93,11 @@ impl CFTree {
                 let mut current_node = root;
                 loop {
                     match current_node {
-                        CFNode::Leaf { id, features, prev, next, parent_id } => {
+                        CFNode::Leaf { id, features, prev, next } => {
                             let closest_feature_idx = features.iter().enumerate().min_by(|(_, a), (_, b)| {
                                 a.distance_0(&entry).partial_cmp(&b.distance_0(&entry)).unwrap()
                             }).unwrap().0;
-                            if (features[closest_feature_idx].clone() + entry.clone()).radius() < self.threshold {
+                            if self.threshold < (features[closest_feature_idx].clone() + entry.clone()).radius() {
                                 features[closest_feature_idx] = features[closest_feature_idx].clone() + entry;
                             } else if features.len() < self.branching_factor {
                                 features.push(entry);
@@ -105,33 +105,15 @@ impl CFTree {
                                 let (seed_0, seed_1, _) = features.iter().enumerate().flat_map(|(i, f)| {
                                     features.iter().enumerate().map(move |(j, g)| (i, j, f.distance_0(g)))
                                 }).max_by(|(_, _, a), (_, _, b)| a.partial_cmp(b).unwrap()).unwrap();
-                                let (group_0, group_1): (Vec<_>, Vec<_>) = features.iter().cloned().partition(|cf| cf.distance_0(&features[seed_0]) < cf.distance_0(&features[seed_1]));
-                                let new_leaf_0 = CFNode::Leaf {
-                                    id: self.next_id,
-                                    features: group_0,
-                                    prev: *prev,
-                                    next: Some(self.next_id + 1),
-                                    parent_id: Some(*id),
-                                };
-                                self.next_id += 1;
-                                let new_leaf_1 = CFNode::Leaf {
-                                    id: self.next_id,
-                                    features: group_1,
-                                    prev: Some(self.next_id - 1),
-                                    next: *next,
-                                    parent_id: Some(*id),
-                                };
-                                self.next_id += 1;
-                                self.arena.push(new_leaf_0);
-                                self.arena.push(new_leaf_1);
+                                let (mut group_0, mut group_1) = features.iter().partition(|i, cf| cf.distance_0(&features[seed_0]) < cf.distance_0(&features[seed_1]));
                             }
                             break;
                         },
-                        CFNode::NonLeaf { features, .. } => {
+                        CFNode::NonLeaf { id: _, features } => {
                             let closest_child_id = features.iter().min_by(|(a, _), (b, _)| {
                                 a.distance_0(&entry).partial_cmp(&b.distance_0(&entry)).unwrap()
                             }).unwrap().1;
-                            current_node = &mut self.arena[closest_child_id];
+                            current_node = &mut self.arena[closest_child_id.0];
                         },
                     }
                 }
@@ -144,10 +126,9 @@ impl CFTree {
                     features,
                     prev: None,
                     next: None,
-                    parent_id: None,
                 };
                 self.arena.push(leaf);
-                self.next_id += 1;
+                self.next_id.0 += 1;
             },
         }
     }

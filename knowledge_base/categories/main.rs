@@ -2,9 +2,9 @@ mod reference_algorithms;
 use reference_algorithms::birch::Birch;
 
 fn main() {
-    let data_stream: Vec<Vec<f64>> = vec![22,9,12,15,18,27,11,36,10,3,14,32].iter().map(|x| vec![*x as f64]).collect();
+    let data_stream = (0..100).map(f64::from).map(|x| vec![x]);
 
-    let mut birch = Birch::new(5., 2);
+    let mut birch = Birch::new(0.5, 2);
     for data in data_stream {
         birch.insert(data);
     }
