@@ -20,7 +20,4 @@ Data clustering is a process in data mining and machine learning that involves g
 ## Data Stream Clustering Challenges and Solutions
 - [[Concept Drift]]
 - [[Time Window]]
-- [[Outlier Detection]]
-- [[Data Structures]]
-- [[Offline Refinement Strategy]]\
 

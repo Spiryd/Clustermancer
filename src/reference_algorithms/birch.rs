@@ -75,13 +75,6 @@ impl CFNode {
         }
     }
 
-    fn len(&self) -> usize {
-        match self {
-            CFNode::Leaf { features, .. } => features.len(),
-            CFNode::NonLeaf { features, .. } => features.len(),
-        }
-    }
-
     fn parent_id(&self) -> Option<usize> {
         match self {
             CFNode::Leaf { parent_id, .. } => *parent_id,
@@ -193,7 +186,7 @@ impl CFTree {
                             }
                             break;
                         },
-                        CFNode::NonLeaf { id, features, .. } => {
+                        CFNode::NonLeaf { features, .. } => {
                             let closest_child_id = features.iter().min_by(|(a, _), (b, _)| {
                                 a.distance_0(&entry).partial_cmp(&b.distance_0(&entry)).unwrap()
                             }).unwrap().1;
@@ -217,7 +210,6 @@ impl CFTree {
                         loop {
                             match parent_id {
                                 Some(p_id) => {
-                                    println!("Parent id: {}", p_id);
                                     let parent = &mut self.arena[p_id];
                                     match parent {
                                         CFNode::Leaf { .. } => {},
@@ -231,7 +223,7 @@ impl CFTree {
                                 None => {
                                     match child {
                                         CFNode::Leaf { .. } => {
-                                            println!("Creating first NonLeaf root");
+                                            println!("Creating a NonLeaf root");
                                             self.arena[id_0].set_parent_id(Some(self.next_id));
                                             self.arena[id_1].set_parent_id(Some(self.next_id));
                                             let new_root = CFNode::NonLeaf {
@@ -249,7 +241,7 @@ impl CFTree {
                                 },
                             }
                         }
-                        // Split phase
+                        // NonLeaf split phase
                     }
                 }
             },
