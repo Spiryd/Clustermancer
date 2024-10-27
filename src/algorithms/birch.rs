@@ -123,6 +123,9 @@ impl CFTree {
     }
 
     fn print(&self) {
+        if self.arena.is_empty() {
+            return;
+        }
         let mut queue = VecDeque::new();
         queue.push_back((self.root_id, 0));
         while let Some((id, indent)) = queue.pop_front() {
