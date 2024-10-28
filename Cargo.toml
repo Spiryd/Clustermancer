@@ -8,3 +8,5 @@ authors = ["Maksymilian Neumann<neumann.maks@gmail.com>"]
 rand = "0.8.5"
 rand_pcg = "0.3.1"
 statrs = "0.17.1"
+itertools = "0.13.0"
+rayon = "1.10.0"

@@ -1,6 +1,9 @@
+use std::collections::{HashMap, VecDeque};
+
 use rand::prelude::*;
 use rand_pcg::Pcg64;
 use statrs::distribution::{Normal, ContinuousCDF};
+use itertools::Itertools;
 
 /// Memory size
 const Q: usize = 10;
@@ -12,7 +15,11 @@ const INIT_NUMBER: usize = 10;
 const MAXIMUM_BOUNDARY_FACTOR: f64 = 2.;
 /// Threshold for the merge operation
 const THRESHOLD: f64 = 0.5;
+/// How far do we look back in the stream for outliers
 const M: usize = 10;
+// storage params
+const ALPHA: usize = 2;
+const L: usize = 2;
 
 #[derive(Debug, Clone)]
 struct MicroCluster {
@@ -133,10 +140,58 @@ fn kmeans(instances: Vec<Vec<f64>>, k: usize, max_iterations: usize) -> Vec<usiz
     assignments
 }
 
+#[derive(Debug, Clone)]
+struct Snapshot {
+    timestamp: usize,
+    micro_clusters: Vec<(MicroCluster, Vec<usize>)>,
+}
+
+#[derive(Debug)]
+struct SnapshotVault {
+    snapshots: HashMap<usize, VecDeque<Snapshot>>,
+}
+
+impl SnapshotVault {
+    fn new() -> Self {
+        SnapshotVault {
+            snapshots: HashMap::new(),
+        }
+    }
+
+    fn insert(&mut self, snapshot: Snapshot) {
+        let orders = Self::find_orders(snapshot.timestamp);
+        for order in orders {
+            if let Some(snapshots) = self.snapshots.get_mut(&order) {
+                if snapshots.len() > ALPHA.pow(L as u32) {
+                    snapshots.pop_front();
+                }
+                snapshots.push_back(snapshot.clone());
+            } else {
+                println!("New order {}", order);
+                let mut snapshots = VecDeque::with_capacity(5);
+                snapshots.push_back(snapshot.clone());
+                self.snapshots.insert(order, snapshots);
+            }
+        }
+    }
+
+    fn find_orders(clock_time: usize) -> Vec<usize> {
+        let mut i: usize = 0;
+        let mut orders = Vec::new();
+        // Loop until clock_time is no longer divisible by alpha^(i+1)
+        while clock_time % ALPHA.pow((i + 1) as u32) == 0 {
+            orders.push(i);
+            i += 1;
+        }
+        orders
+    }
+    
+}
+
 #[derive(Debug)]
 pub struct CluStream{
-    micro_clusters: Vec<(MicroCluster, usize)>,
-    ids: Vec<usize>,
+    snapshot_vault: SnapshotVault,
+    micro_clusters: Vec<(MicroCluster, Vec<usize>)>,
     initiated: bool,
     initial_buffer: Vec<Vec<f64>>,
     clock: usize,
@@ -146,11 +201,11 @@ pub struct CluStream{
 impl CluStream {
     pub fn new() -> Self {
         CluStream {
+            snapshot_vault: SnapshotVault::new(),
             micro_clusters: Vec::new(),
-            ids: Vec::new(),
             initiated: false,
             initial_buffer: Vec::new(),
-            clock: 0,
+            clock: 1,
             next_id: 0,
         }
     }
@@ -170,41 +225,50 @@ impl CluStream {
                         micro_clusters[*group] = Some(MicroCluster::new(self.initial_buffer[i].clone(), i));
                     }
                 }
-                self.micro_clusters = micro_clusters.into_iter().filter_map(|x| x).enumerate().map(|(i, mc)| (mc, i)).collect();
+                self.micro_clusters = micro_clusters.into_iter().flatten().enumerate().map(|(i, mc)| (mc, vec![i])).collect();
                 self.next_id = self.micro_clusters.len();
                 self.initial_buffer.clear();
             }
         } else {
             // Step 2: Update micro-clusters
             let min_cluster_idx = self.micro_clusters.iter().enumerate().min_by(|(_, a), (_, b)| a.0.distance(&instance).partial_cmp(&b.0.distance(&instance)).unwrap()).unwrap().0;
-            let max_boundary: f64;
-            match self.micro_clusters[min_cluster_idx].0.maximal_boundary() {
-                Some(boundary) => max_boundary = boundary,
+            let max_boundary = match self.micro_clusters[min_cluster_idx].0.maximal_boundary() {
+                Some(boundary) => boundary,
                 None => {
                     let centroid = self.micro_clusters[min_cluster_idx].0.centroid();
-                    max_boundary = self.micro_clusters.iter().map(|(a, _)|a.distance(&centroid)).min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+                    self.micro_clusters.iter().map(|(a, _)|a.distance(&centroid)).min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()
                 }
-            }
+            };
             if self.micro_clusters[min_cluster_idx].0.distance(&instance) <= max_boundary {
                 self.micro_clusters[min_cluster_idx].0 += MicroCluster::new(instance, self.clock);
                 // println!("Added to cluster {}", self.micro_clusters[min_cluster_idx].1);
+            } else if self.micro_clusters.len() < Q {
+                println!("New cluster(Quota not reached)");
+                self.micro_clusters.push((MicroCluster::new(instance, self.clock), vec![self.next_id]));
+                self.next_id += 1;
             } else {
-                if self.micro_clusters.len() < Q {
-                    println!("New cluster(Quota not reached)");
-                    self.micro_clusters.push((MicroCluster::new(instance, self.clock), self.next_id));
+                let least_relevant = self.micro_clusters.iter().enumerate().map(|(i, (mc, _))| (i, mc.relevance_stamp())).min_by(|(_, rel_a), (_, rel_b)| rel_a.partial_cmp(rel_b).unwrap()).unwrap();
+                if least_relevant.1 < THRESHOLD{
+                    // Prune outliers
+                    self.micro_clusters[least_relevant.0] = (MicroCluster::new(instance, self.clock), vec![self.next_id]);
+                    println!("Replaced least relevant with id {}", self.next_id);
                     self.next_id += 1;
                 } else {
-                    let least_relevant = self.micro_clusters.iter().enumerate().map(|(i, (mc, _))| (i, mc.relevance_stamp())).min_by(|(_, rel_a), (_, rel_b)| rel_a.partial_cmp(rel_b).unwrap()).unwrap();
-                    if least_relevant.1 < THRESHOLD{
-                        self.micro_clusters[least_relevant.0] = (MicroCluster::new(instance, self.clock), self.next_id);
-                        println!("Replaced least relevant with id {}", self.next_id);
-                        self.next_id += 1;
-                    } else {
-
-                    }
+                    // Merge
+                    // println!("Merging");
+                    let closest_pair = self.micro_clusters.iter().enumerate().combinations(2).map(|x| ((x[0].0, x[1].0), x[0].1.0.distance(&x[1].1.0.centroid()))).min_by(|a, b| a.1.partial_cmp(&b.1).unwrap()).unwrap().0;
+                    let merge_from = self.micro_clusters[closest_pair.1].clone();
+                    self.micro_clusters[closest_pair.0].0 += merge_from.0;
+                    self.micro_clusters[closest_pair.0].1.extend(merge_from.1);
+                    self.micro_clusters[closest_pair.1].0 = MicroCluster::new(instance, self.clock);
+                    self.micro_clusters[closest_pair.1].1 = vec![self.next_id];
+                    self.next_id += 1;
                 }
             }
         }
+        // Step 3: Periodically create snapshots
+        self.snapshot_vault.insert(Snapshot { timestamp: self.clock, micro_clusters: self.micro_clusters.clone()});
+        // Get ready for the next iteration
         self.clock += 1;
     }
 
