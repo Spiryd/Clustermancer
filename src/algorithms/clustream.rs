@@ -1,5 +1,3 @@
-use std::collections::{HashMap, VecDeque};
-
 use rand::prelude::*;
 use rand_pcg::Pcg64;
 use statrs::distribution::{Normal, ContinuousCDF};
@@ -148,42 +146,41 @@ struct Snapshot {
 
 #[derive(Debug)]
 struct SnapshotVault {
-    snapshots: HashMap<usize, VecDeque<Snapshot>>,
+    snapshots: Vec<(Vec<Option<Snapshot>>, usize)>,
 }
 
 impl SnapshotVault {
     fn new() -> Self {
         SnapshotVault {
-            snapshots: HashMap::new(),
+            snapshots: Vec::new(),
         }
     }
 
     fn insert(&mut self, snapshot: Snapshot) {
-        let orders = Self::find_orders(snapshot.timestamp);
-        for order in orders {
-            if let Some(snapshots) = self.snapshots.get_mut(&order) {
-                if snapshots.len() > ALPHA.pow(L as u32) {
-                    snapshots.pop_front();
-                }
-                snapshots.push_back(snapshot.clone());
-            } else {
-                println!("New order {}", order);
-                let mut snapshots = VecDeque::with_capacity(5);
-                snapshots.push_back(snapshot.clone());
-                self.snapshots.insert(order, snapshots);
-            }
+        let order = if ALPHA == 2 {
+            snapshot.timestamp.trailing_zeros() as usize
+        } else {
+            Self::find_orders(snapshot.timestamp)
+        };
+        if let Some((snapshots, idx)) = self.snapshots.get_mut(order) {
+            snapshots[*idx] = Some(snapshot);
+            *idx = (*idx + 1) % 5;
+        } else {
+            println!("New order {}", order);
+            let mut snapshots = vec![None; 5];
+            snapshots[0] = Some(snapshot);
+            self.snapshots.insert(order, (snapshots, 1));
         }
     }
 
-    fn find_orders(clock_time: usize) -> Vec<usize> {
+    fn find_orders(clock_time: usize) -> usize {
         let mut i: usize = 0;
-        let mut orders = Vec::new();
-        // Loop until clock_time is no longer divisible by alpha^(i+1)
-        while clock_time % ALPHA.pow((i + 1) as u32) == 0 {
-            orders.push(i);
+        let mut tmp_clock_time = clock_time;
+        while tmp_clock_time % ALPHA == 0 {
+            tmp_clock_time /= ALPHA;
             i += 1;
         }
-        orders
+        i
     }
     
 }
@@ -266,13 +263,13 @@ impl CluStream {
                 }
             }
         }
-        // Step 3: Periodically create snapshots
+        // Step 3: Create snapshots
         self.snapshot_vault.insert(Snapshot { timestamp: self.clock, micro_clusters: self.micro_clusters.clone()});
         // Get ready for the next iteration
         self.clock += 1;
     }
 
-    pub fn offline_macro_clustering(&self) {
+    pub fn offline_macro_clustering(&self, h: usize, k: usize) {
         todo!()
     }
 
@@ -281,30 +278,16 @@ impl CluStream {
             println!("Centroid {}: {:?}", i, mc.centroid());
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn kmeans_test() {
-        for _ in 0..10 {
-            let instances: Vec<Vec<f64>> = (0..100).map(|_| thread_rng().gen_range(0..100)).map(|x| vec![x as f64]).collect();
-            let k = 10;
-            let max_iterations = 100;
-            kmeans(instances, k, max_iterations);
-        }
-    }
-
-    #[test]
-    fn test_clustream() {
-        for _ in 0..10 {
-            let data_stream: Vec<Vec<f64>> = (0..100).map(|_| thread_rng().gen_range(0..100)).map(|x| vec![x as f64]).collect();
-            let mut clustream = CluStream::new();
-            for data in data_stream {
-                clustream.insert(data.clone());
+    pub fn print_vault(&self) {
+        for (i, (snapshots, _)) in self.snapshot_vault.snapshots.iter().enumerate() {
+            print!("Order {}:", i);
+            for snapshot in snapshots {
+                if let Some(snapshot) = snapshot {
+                    print!(" {},", snapshot.timestamp);
+                }
             }
+            println!("");
         }
     }
 }

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "algorithms/CluStream.md",
+                "file": "Presentations/Spis Treści.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "CluStream"
+              "title": "Spis Treści"
             }
           }
         ]
@@ -182,6 +182,7 @@
   "active": "8609b21267d59c10",
   "lastOpenFiles": [
     "algorithms/CluStream.md",
+    "Presentations/Spis Treści.md",
     "algorithms/BIRCH.md",
     "key concepts/Key Concepts.md",
     "algorithms/Data Stream Clustering Algorithms.md",
@@ -226,7 +227,6 @@
     "data structures/Clustering Feature Tree.md",
     "Clustermancer.md",
     "Welcome.md",
-    "create a link.md",
-    "ok.md"
+    "create a link.md"
   ]
 }
