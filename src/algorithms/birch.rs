@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, fmt::Debug};
 
+
 #[derive(Debug, Clone)]
 struct ClusteringFeature {
     n: usize,
