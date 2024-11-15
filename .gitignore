@@ -4,3 +4,6 @@ Cargo.lock
 
 # MacOs
 .DS_Store
+
+# Misc
+benchmark_data/my_synth.csv

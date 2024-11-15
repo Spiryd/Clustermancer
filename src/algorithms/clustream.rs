@@ -291,3 +291,12 @@ impl CluStream {
         }
     }
 }
+
+impl super::DataStreamClusteringAlgorithm for CluStream {
+    fn insert(&mut self, data: Vec<f64>) {
+        self.insert(data);
+    }
+    fn name(&self) -> String {
+        format!("CluStream")
+    }
+}
