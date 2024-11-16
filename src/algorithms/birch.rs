@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, fmt::Debug};
 
-
 #[derive(Debug, Clone)]
 struct ClusteringFeature {
     n: usize,
@@ -13,7 +12,10 @@ impl ClusteringFeature {
         ClusteringFeature {
             n: 1,
             ls: element.clone(),
-            ss: element.iter().map(|&sub_element| sub_element * sub_element).sum(),
+            ss: element
+                .iter()
+                .map(|&sub_element| sub_element * sub_element)
+                .sum(),
         }
     }
 
@@ -29,7 +31,11 @@ impl ClusteringFeature {
     fn distance_0(&self, other: &Self) -> f64 {
         let a: Vec<f64> = self.centroid();
         let b: Vec<f64> = other.centroid();
-        a.iter().zip(b.iter()).map(|(&a, &b)| (a - b).powi(2)).sum::<f64>().sqrt()
+        a.iter()
+            .zip(b.iter())
+            .map(|(&a, &b)| (a - b).powi(2))
+            .sum::<f64>()
+            .sqrt()
     }
 
     #[allow(dead_code)]
@@ -46,7 +52,12 @@ impl std::ops::Add for ClusteringFeature {
 
     fn add(self, other: Self) -> Self {
         let n = self.n + other.n;
-        let ls = self.ls.iter().zip(other.ls.iter()).map(|(&a, &b)| a + b).collect();
+        let ls = self
+            .ls
+            .iter()
+            .zip(other.ls.iter())
+            .map(|(&a, &b)| a + b)
+            .collect();
         let ss = self.ss + other.ss;
         ClusteringFeature { n, ls, ss }
     }
@@ -54,7 +65,7 @@ impl std::ops::Add for ClusteringFeature {
 
 #[derive(Clone, Debug)]
 enum CFNode {
-    Leaf{
+    Leaf {
         id: usize,
         parent_id: Option<usize>,
         features: Vec<ClusteringFeature>,
@@ -92,8 +103,15 @@ impl CFNode {
 
     fn sum(&self) -> ClusteringFeature {
         match self {
-            CFNode::Leaf { features, .. } => features.iter().cloned().reduce(|acc, cf| acc + cf).unwrap(),
-            CFNode::NonLeaf { features, .. } => features.iter().cloned().map(|(cf, _)| cf).reduce(|acc, cf| acc + cf).unwrap(),
+            CFNode::Leaf { features, .. } => {
+                features.iter().cloned().reduce(|acc, cf| acc + cf).unwrap()
+            }
+            CFNode::NonLeaf { features, .. } => features
+                .iter()
+                .cloned()
+                .map(|(cf, _)| cf)
+                .reduce(|acc, cf| acc + cf)
+                .unwrap(),
         }
     }
 }
@@ -133,20 +151,34 @@ impl CFTree {
             let sum = self.arena[id].sum();
             match &self.arena[id] {
                 CFNode::Leaf { .. } => {
-                    println!("{:indent$}Leaf({}, {:?}, {})", "", sum.n, sum.ls, sum.ss, indent=indent);
-                },
-                CFNode::NonLeaf { features,  .. } => {
-                    println!("{:indent$}NonLeaf({}, {:?}, {})", "", sum.n, sum.ls, sum.ss, indent=indent);
+                    println!(
+                        "{:indent$}Leaf({}, {:?}, {})",
+                        "",
+                        sum.n,
+                        sum.ls,
+                        sum.ss,
+                        indent = indent
+                    );
+                }
+                CFNode::NonLeaf { features, .. } => {
+                    println!(
+                        "{:indent$}NonLeaf({}, {:?}, {})",
+                        "",
+                        sum.n,
+                        sum.ls,
+                        sum.ss,
+                        indent = indent
+                    );
                     for (_, child_id) in features {
                         queue.push_back((*child_id, indent + 2));
                     }
-                },
+                }
             }
         }
     }
 
     fn insert(&mut self, instance: Vec<f64>) {
-        let entry =  ClusteringFeature::new(instance);
+        let entry = ClusteringFeature::new(instance);
 
         match self.arena.get_mut(self.root_id) {
             Some(root) => {
@@ -155,21 +187,49 @@ impl CFTree {
                 // Insering stage
                 loop {
                     match current_node {
-                        CFNode::Leaf { id, features, prev, next, parent_id } => {
-                            let closest_feature_idx = features.iter().enumerate().min_by(|(_, a), (_, b)| {
-                                a.distance_0(&entry).partial_cmp(&b.distance_0(&entry)).unwrap()
-                            }).unwrap().0;
-                            if (features[closest_feature_idx].clone() + entry.clone()).radius() < self.threshold {
-                                features[closest_feature_idx] = features[closest_feature_idx].clone() + entry;
+                        CFNode::Leaf {
+                            id,
+                            features,
+                            prev,
+                            next,
+                            parent_id,
+                        } => {
+                            let closest_feature_idx = features
+                                .iter()
+                                .enumerate()
+                                .min_by(|(_, a), (_, b)| {
+                                    a.distance_0(&entry)
+                                        .partial_cmp(&b.distance_0(&entry))
+                                        .unwrap()
+                                })
+                                .unwrap()
+                                .0;
+                            if (features[closest_feature_idx].clone() + entry.clone()).radius()
+                                < self.threshold
+                            {
+                                features[closest_feature_idx] =
+                                    features[closest_feature_idx].clone() + entry;
                                 update_type = UpdateType::Simple(*id);
                             } else if features.len() < self.branching_factor {
                                 features.push(entry);
                                 update_type = UpdateType::Simple(*id);
                             } else {
-                                let (seed_0, seed_1, _) = features.iter().enumerate().flat_map(|(i, f)| {
-                                    features.iter().enumerate().map(move |(j, g)| (i, j, f.distance_0(g)))
-                                }).max_by(|(_, _, a), (_, _, b)| a.partial_cmp(b).unwrap()).unwrap();
-                                let (group_0, group_1): (Vec<_>, Vec<_>) = features.iter().cloned().partition(|cf| cf.distance_0(&features[seed_0]) < cf.distance_0(&features[seed_1]));
+                                let (seed_0, seed_1, _) = features
+                                    .iter()
+                                    .enumerate()
+                                    .flat_map(|(i, f)| {
+                                        features
+                                            .iter()
+                                            .enumerate()
+                                            .map(move |(j, g)| (i, j, f.distance_0(g)))
+                                    })
+                                    .max_by(|(_, _, a), (_, _, b)| a.partial_cmp(b).unwrap())
+                                    .unwrap();
+                                let (group_0, group_1): (Vec<_>, Vec<_>) =
+                                    features.iter().cloned().partition(|cf| {
+                                        cf.distance_0(&features[seed_0])
+                                            < cf.distance_0(&features[seed_1])
+                                    });
                                 let new_leaf_0 = CFNode::Leaf {
                                     id: *id,
                                     features: group_0,
@@ -189,13 +249,19 @@ impl CFTree {
                                 self.arena.push(new_leaf_1);
                             }
                             break;
-                        },
+                        }
                         CFNode::NonLeaf { features, .. } => {
-                            let closest_child_id = features.iter().min_by(|(a, _), (b, _)| {
-                                a.distance_0(&entry).partial_cmp(&b.distance_0(&entry)).unwrap()
-                            }).unwrap().1;
+                            let closest_child_id = features
+                                .iter()
+                                .min_by(|(a, _), (b, _)| {
+                                    a.distance_0(&entry)
+                                        .partial_cmp(&b.distance_0(&entry))
+                                        .unwrap()
+                                })
+                                .unwrap()
+                                .1;
                             current_node = &mut self.arena[closest_child_id];
-                        },
+                        }
                     }
                 }
 
@@ -203,7 +269,7 @@ impl CFTree {
                 match update_type {
                     UpdateType::Simple(id) => {
                         self.update_upward(id);
-                    },
+                    }
                     UpdateType::Split(node_to_update, id_1) => {
                         // Update phase
                         let id_0 = node_to_update.id();
@@ -216,14 +282,14 @@ impl CFTree {
                                 Some(p_id) => {
                                     let parent = &mut self.arena[p_id];
                                     match parent {
-                                        CFNode::Leaf { .. } => {},
+                                        CFNode::Leaf { .. } => {}
                                         CFNode::NonLeaf { features, .. } => {
                                             features.push((child.sum(), id_1));
-                                        },
+                                        }
                                     }
                                     parent_id = parent.parent_id();
                                     child = parent.clone();
-                                },
+                                }
                                 None => {
                                     match child {
                                         CFNode::Leaf { .. } => {
@@ -233,22 +299,25 @@ impl CFTree {
                                             let new_root = CFNode::NonLeaf {
                                                 id: self.next_id,
                                                 parent_id: None,
-                                                features: vec![(self.arena[id_0].sum(), id_0), (self.arena[id_1].sum(), id_1)],
+                                                features: vec![
+                                                    (self.arena[id_0].sum(), id_0),
+                                                    (self.arena[id_1].sum(), id_1),
+                                                ],
                                             };
                                             self.root_id = self.next_id;
                                             self.arena.push(new_root);
                                             self.next_id += 1;
-                                        },
-                                        CFNode::NonLeaf { .. } => {},
+                                        }
+                                        CFNode::NonLeaf { .. } => {}
                                     }
                                     break;
-                                },
+                                }
                             }
                         }
                         // NonLeaf split phase
                     }
                 }
-            },
+            }
             None => {
                 let mut features = Vec::with_capacity(self.branching_factor);
                 features.push(entry);
@@ -261,7 +330,7 @@ impl CFTree {
                 };
                 self.arena.push(leaf);
                 self.next_id += 1;
-            },
+            }
         }
     }
 
@@ -271,10 +340,14 @@ impl CFTree {
         while let Some(p_id) = parent_id {
             let parent = &mut self.arena[p_id];
             match parent {
-                CFNode::Leaf { .. } => {},
+                CFNode::Leaf { .. } => {}
                 CFNode::NonLeaf { features, .. } => {
-                    features.iter_mut().find(|(_, child_id)| *child_id == child.id()).unwrap().0 = child.sum();
-                },
+                    features
+                        .iter_mut()
+                        .find(|(_, child_id)| *child_id == child.id())
+                        .unwrap()
+                        .0 = child.sum();
+                }
             }
             parent_id = parent.parent_id();
             child = parent.clone();
@@ -308,7 +381,7 @@ impl super::DataStreamClusteringAlgorithm for BIRCH {
         self.insert(data);
     }
     fn name(&self) -> String {
-        format!("BIRCH")
+        "BIRCH".to_string()
     }
 }
 
@@ -324,6 +397,5 @@ mod tests {
 
         assert_eq!(cf3.centroid(), vec![2.5]);
         assert_eq!(cf3.radius(), 4.);
-
     }
 }

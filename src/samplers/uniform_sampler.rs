@@ -24,6 +24,6 @@ impl Sampler for UniformSampler {
         self.counter += 1;
     }
     fn name(&self) -> String {
-        format!("UniformSampler")
+        "UniformSampler".to_string()
     }
 }

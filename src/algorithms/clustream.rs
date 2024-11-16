@@ -1,7 +1,10 @@
+use itertools::Itertools;
+use ordered_float::OrderedFloat;
 use rand::prelude::*;
 use rand_pcg::Pcg64;
-use statrs::distribution::{Normal, ContinuousCDF};
-use itertools::Itertools;
+use statrs::distribution::{ContinuousCDF, Normal};
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 
 /// Memory size
 const Q: usize = 10;
@@ -18,6 +21,39 @@ const M: usize = 10;
 // storage params
 const ALPHA: usize = 2;
 const L: usize = 2;
+const ALPHA_L: usize = ALPHA.pow(L as u32);
+
+/// Efraimidis and Spirakis's weighted random sampling algorithm
+///
+/// - `n`: is the weights
+/// - `x`: is the number of samples
+///
+/// Returns a vector of indices
+fn weighted_random_sample(n: &[usize], x: usize) -> Vec<usize> {
+    let mut rng = Pcg64::from_entropy();
+    let mut heap = BinaryHeap::with_capacity(n.len());
+
+    for (i, &n_i) in n.iter().enumerate() {
+        if n_i == 0 {
+            continue; // Skip zero weights
+        }
+        let u: f64 = rng.gen_range(f64::MIN_POSITIVE..1.0);
+        let n_i_f64 = n_i as f64;
+        let key = -u.ln() / n_i_f64;
+        heap.push(Reverse((OrderedFloat(key), i)));
+    }
+
+    let mut sampled_indices = Vec::with_capacity(x);
+    for _ in 0..x.min(heap.len()) {
+        if let Some(Reverse((_, i))) = heap.pop() {
+            sampled_indices.push(i);
+        } else {
+            break; // No more items in the heap
+        }
+    }
+
+    sampled_indices
+}
 
 #[derive(Debug, Clone)]
 struct MicroCluster {
@@ -30,7 +66,7 @@ struct MicroCluster {
 
 impl MicroCluster {
     fn new(instance: Vec<f64>, time_stamp: usize) -> Self {
-        MicroCluster { 
+        MicroCluster {
             cf2x: instance.iter().map(|x| x * x).collect(),
             cf1x: instance.clone(),
             cf2t: (time_stamp * time_stamp) as f64,
@@ -43,16 +79,36 @@ impl MicroCluster {
         self.cf1x.iter().map(|x| x / self.n as f64).collect()
     }
 
-    fn distance(&self, instance: &Vec<f64>) -> f64 {
+    fn distance(&self, instance: &[f64]) -> f64 {
         let centroid = self.centroid();
-        instance.iter().zip(centroid.iter()).map(|(x, y)| (x - y).powi(2)).sum::<f64>().sqrt()
+        instance
+            .iter()
+            .zip(centroid.iter())
+            .map(|(x, y)| (x - y).powi(2))
+            .sum::<f64>()
+            .sqrt()
     }
 
     fn maximal_boundary(&self) -> Option<f64> {
         if self.n > 1 {
-            let a = self.cf2x.iter().map(|x_p| x_p / self.n as f64).collect::<Vec<f64>>();
-            let b = self.centroid().iter().map(|x_p| x_p.powi(2)).collect::<Vec<f64>>();
-            return Some(MAXIMUM_BOUNDARY_FACTOR * (a.iter().zip(b.iter()).map(|(x, y)| (x - y) / a.len() as f64).sum::<f64>().sqrt()));
+            let a = self
+                .cf2x
+                .iter()
+                .map(|x_p| x_p / self.n as f64)
+                .collect::<Vec<f64>>();
+            let b = self
+                .centroid()
+                .iter()
+                .map(|x_p| x_p.powi(2))
+                .collect::<Vec<f64>>();
+            return Some(
+                MAXIMUM_BOUNDARY_FACTOR
+                    * (a.iter()
+                        .zip(b.iter())
+                        .map(|(x, y)| (x - y) / a.len() as f64)
+                        .sum::<f64>()
+                        .sqrt()),
+            );
         }
         None
     }
@@ -73,8 +129,18 @@ impl std::ops::Add for MicroCluster {
     type Output = Self;
     fn add(self, other: Self) -> Self {
         MicroCluster {
-            cf2x: self.cf2x.iter().zip(other.cf2x.iter()).map(|(x, y)| x + y).collect(),
-            cf1x: self.cf1x.iter().zip(other.cf1x.iter()).map(|(x, y)| x + y).collect(),
+            cf2x: self
+                .cf2x
+                .iter()
+                .zip(other.cf2x.iter())
+                .map(|(x, y)| x + y)
+                .collect(),
+            cf1x: self
+                .cf1x
+                .iter()
+                .zip(other.cf1x.iter())
+                .map(|(x, y)| x + y)
+                .collect(),
             cf2t: self.cf2t + other.cf2t,
             cf1t: self.cf1t + other.cf1t,
             n: self.n + other.n,
@@ -84,8 +150,18 @@ impl std::ops::Add for MicroCluster {
 
 impl std::ops::AddAssign for MicroCluster {
     fn add_assign(&mut self, other: Self) {
-        self.cf2x = self.cf2x.iter().zip(other.cf2x.iter()).map(|(x, y)| x + y).collect();
-        self.cf1x = self.cf1x.iter().zip(other.cf1x.iter()).map(|(x, y)| x + y).collect();
+        self.cf2x = self
+            .cf2x
+            .iter()
+            .zip(other.cf2x.iter())
+            .map(|(x, y)| x + y)
+            .collect();
+        self.cf1x = self
+            .cf1x
+            .iter()
+            .zip(other.cf1x.iter())
+            .map(|(x, y)| x + y)
+            .collect();
         self.cf2t += other.cf2t;
         self.cf1t += other.cf1t;
         self.n += other.n;
@@ -103,7 +179,12 @@ fn kmeans(instances: Vec<Vec<f64>>, k: usize, max_iterations: usize) -> Vec<usiz
             let mut min_distance = f64::MAX;
             let mut closest_centroid = 0;
             for (j, centroid) in centroids.iter().enumerate() {
-                let distance = instance.iter().zip(centroid.iter()).map(|(x, y)| (x - y).powi(2)).sum::<f64>().sqrt();
+                let distance = instance
+                    .iter()
+                    .zip(centroid.iter())
+                    .map(|(x, y)| (x - y).powi(2))
+                    .sum::<f64>()
+                    .sqrt();
                 if distance < min_distance {
                     min_distance = distance;
                     closest_centroid = j;
@@ -164,7 +245,7 @@ impl SnapshotVault {
         };
         if let Some((snapshots, idx)) = self.snapshots.get_mut(order) {
             snapshots[*idx] = Some(snapshot);
-            *idx = (*idx + 1) % 5;
+            *idx = (*idx + 1) % ALPHA_L;
         } else {
             println!("New order {}", order);
             let mut snapshots = vec![None; 5];
@@ -182,11 +263,10 @@ impl SnapshotVault {
         }
         i
     }
-    
 }
 
 #[derive(Debug)]
-pub struct CluStream{
+pub struct CluStream {
     snapshot_vault: SnapshotVault,
     micro_clusters: Vec<(MicroCluster, Vec<usize>)>,
     initiated: bool,
@@ -213,27 +293,48 @@ impl CluStream {
             self.initial_buffer.push(instance);
             if self.initial_buffer.len() == INIT_NUMBER {
                 self.initiated = true;
-                let initial_micro_cluster_mapping = kmeans(self.initial_buffer.clone(), Q, MAX_ITERATIONS);
+                let initial_micro_cluster_mapping =
+                    kmeans(self.initial_buffer.clone(), Q, MAX_ITERATIONS);
                 let mut micro_clusters: Vec<Option<MicroCluster>> = vec![None; Q];
                 for (i, group) in initial_micro_cluster_mapping.iter().enumerate() {
                     if let Some(micro_cluster) = &mut micro_clusters[*group] {
                         *micro_cluster += MicroCluster::new(self.initial_buffer[i].clone(), i);
                     } else {
-                        micro_clusters[*group] = Some(MicroCluster::new(self.initial_buffer[i].clone(), i));
+                        micro_clusters[*group] =
+                            Some(MicroCluster::new(self.initial_buffer[i].clone(), i));
                     }
                 }
-                self.micro_clusters = micro_clusters.into_iter().flatten().enumerate().map(|(i, mc)| (mc, vec![i])).collect();
+                self.micro_clusters = micro_clusters
+                    .into_iter()
+                    .flatten()
+                    .enumerate()
+                    .map(|(i, mc)| (mc, vec![i]))
+                    .collect();
                 self.next_id = self.micro_clusters.len();
                 self.initial_buffer.clear();
             }
         } else {
             // Step 2: Update micro-clusters
-            let min_cluster_idx = self.micro_clusters.iter().enumerate().min_by(|(_, a), (_, b)| a.0.distance(&instance).partial_cmp(&b.0.distance(&instance)).unwrap()).unwrap().0;
+            let min_cluster_idx = self
+                .micro_clusters
+                .iter()
+                .enumerate()
+                .min_by(|(_, a), (_, b)| {
+                    a.0.distance(&instance)
+                        .partial_cmp(&b.0.distance(&instance))
+                        .unwrap()
+                })
+                .unwrap()
+                .0;
             let max_boundary = match self.micro_clusters[min_cluster_idx].0.maximal_boundary() {
                 Some(boundary) => boundary,
                 None => {
                     let centroid = self.micro_clusters[min_cluster_idx].0.centroid();
-                    self.micro_clusters.iter().map(|(a, _)|a.distance(&centroid)).min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap()
+                    self.micro_clusters
+                        .iter()
+                        .map(|(a, _)| a.distance(&centroid))
+                        .min_by(|a, b| a.partial_cmp(b).unwrap())
+                        .unwrap()
                 }
             };
             if self.micro_clusters[min_cluster_idx].0.distance(&instance) <= max_boundary {
@@ -241,19 +342,35 @@ impl CluStream {
                 // println!("Added to cluster {}", self.micro_clusters[min_cluster_idx].1);
             } else if self.micro_clusters.len() < Q {
                 println!("New cluster(Quota not reached)");
-                self.micro_clusters.push((MicroCluster::new(instance, self.clock), vec![self.next_id]));
+                self.micro_clusters
+                    .push((MicroCluster::new(instance, self.clock), vec![self.next_id]));
                 self.next_id += 1;
             } else {
-                let least_relevant = self.micro_clusters.iter().enumerate().map(|(i, (mc, _))| (i, mc.relevance_stamp())).min_by(|(_, rel_a), (_, rel_b)| rel_a.partial_cmp(rel_b).unwrap()).unwrap();
-                if least_relevant.1 < THRESHOLD{
+                let least_relevant = self
+                    .micro_clusters
+                    .iter()
+                    .enumerate()
+                    .map(|(i, (mc, _))| (i, mc.relevance_stamp()))
+                    .min_by(|(_, rel_a), (_, rel_b)| rel_a.partial_cmp(rel_b).unwrap())
+                    .unwrap();
+                if least_relevant.1 < THRESHOLD {
                     // Prune outliers
-                    self.micro_clusters[least_relevant.0] = (MicroCluster::new(instance, self.clock), vec![self.next_id]);
+                    self.micro_clusters[least_relevant.0] =
+                        (MicroCluster::new(instance, self.clock), vec![self.next_id]);
                     println!("Replaced least relevant with id {}", self.next_id);
                     self.next_id += 1;
                 } else {
                     // Merge
                     // println!("Merging");
-                    let closest_pair = self.micro_clusters.iter().enumerate().combinations(2).map(|x| ((x[0].0, x[1].0), x[0].1.0.distance(&x[1].1.0.centroid()))).min_by(|a, b| a.1.partial_cmp(&b.1).unwrap()).unwrap().0;
+                    let closest_pair = self
+                        .micro_clusters
+                        .iter()
+                        .enumerate()
+                        .combinations(2)
+                        .map(|x| ((x[0].0, x[1].0), x[0].1 .0.distance(&x[1].1 .0.centroid())))
+                        .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+                        .unwrap()
+                        .0;
                     let merge_from = self.micro_clusters[closest_pair.1].clone();
                     self.micro_clusters[closest_pair.0].0 += merge_from.0;
                     self.micro_clusters[closest_pair.0].1.extend(merge_from.1);
@@ -264,13 +381,23 @@ impl CluStream {
             }
         }
         // Step 3: Create snapshots
-        self.snapshot_vault.insert(Snapshot { timestamp: self.clock, micro_clusters: self.micro_clusters.clone()});
+        self.snapshot_vault.insert(Snapshot {
+            timestamp: self.clock,
+            micro_clusters: self.micro_clusters.clone(),
+        });
         // Get ready for the next iteration
         self.clock += 1;
     }
 
-    pub fn offline_macro_clustering(&self, h: usize, k: usize) {
-        todo!()
+    /// Offline macro-clustering
+    /// - `h`: is the time horizon
+    /// - `k`: is the number of clusters
+    pub fn offline_macro_clustering(&self, h: usize, k: usize) {}
+
+    fn macro_clustering_kmeans(&self, data: Vec<MicroCluster>, k: usize) {
+        let weights: Vec<usize> = data.iter().map(|mc| mc.n).collect();
+        let seeds: Vec<usize> = weighted_random_sample(&weights, k);
+        println!("{:?}", seeds);
     }
 
     pub fn pirnt_centroids(&self) {
@@ -282,12 +409,10 @@ impl CluStream {
     pub fn print_vault(&self) {
         for (i, (snapshots, _)) in self.snapshot_vault.snapshots.iter().enumerate() {
             print!("Order {}:", i);
-            for snapshot in snapshots {
-                if let Some(snapshot) = snapshot {
-                    print!(" {},", snapshot.timestamp);
-                }
+            for snapshot in snapshots.iter().flatten() {
+                print!(" {},", snapshot.timestamp);
             }
-            println!("");
+            println!();
         }
     }
 }
@@ -297,6 +422,6 @@ impl super::DataStreamClusteringAlgorithm for CluStream {
         self.insert(data);
     }
     fn name(&self) -> String {
-        format!("CluStream")
+        "CluStream".to_string()
     }
 }

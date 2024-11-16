@@ -6,4 +6,4 @@ Cargo.lock
 .DS_Store
 
 # Misc
-benchmark_data/my_synth.csv
+benchmark_data/synthetic

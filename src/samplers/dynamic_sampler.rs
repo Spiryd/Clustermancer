@@ -1,14 +1,13 @@
-use crate::algorithms::DataStreamClusteringAlgorithm;
 use super::Sampler;
+use crate::algorithms::DataStreamClusteringAlgorithm;
 
 pub struct DynamicSampler {
     algorithm: Box<dyn DataStreamClusteringAlgorithm>,
-    counter: usize,
 }
 
 impl DynamicSampler {
     pub fn new(algorithm: Box<dyn DataStreamClusteringAlgorithm>) -> Self {
-        Self { algorithm, counter: 1 }
+        Self { algorithm }
     }
 }
 
@@ -17,6 +16,6 @@ impl Sampler for DynamicSampler {
         todo!()
     }
     fn name(&self) -> String {
-        format!("DynamicSampler")
+        "DynamicSampler".to_string()
     }
 }
