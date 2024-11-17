@@ -1,14 +1,15 @@
 use super::algorithms::{
-    birch::BIRCH, clustream::CluStream, stream::STREAM, DataStreamClusteringAlgorithm,
+    birch::Birch, clustream::CluStream, stream::Stream, DataStreamClusteringAlgorithm,
 };
 use super::samplers::{dynamic_sampler::DynamicSampler, uniform_sampler::UniformSampler, Sampler};
 
-use csv::ReaderBuilder;
+use csv::{Position, ReaderBuilder};
 use std::fs::File;
+use std::time::Instant;
 
 const DATA_SETS: [&str; 2] = [
     "benchmark_data/demo.csv",
-    "benchmark_data/synthetic/random_6.csv",
+    "benchmark_data/synthetic/random_5k_2d.csv",
 ];
 
 type AlorithmFactory = Box<dyn Fn() -> Box<dyn DataStreamClusteringAlgorithm>>;
@@ -17,15 +18,14 @@ type SamplerFactory = Box<dyn Fn(Box<dyn DataStreamClusteringAlgorithm>) -> Box<
 pub fn benchmark_algorithms() {
     let algorithm_factories: Vec<AlorithmFactory> = vec![
         // Box::new(|| Box::new(BIRCH::new(5., 2))),
+        Box::new(|| Box::new(Stream::new(5))),
         Box::new(|| Box::new(CluStream::new())),
-        Box::new(|| Box::new(STREAM::new())),
     ];
 
     for data_set in DATA_SETS.iter() {
-        let file = File::open(data_set).unwrap();
-        let mut rdr = ReaderBuilder::new().from_reader(file);
-
         for factory in algorithm_factories.iter() {
+            let file = File::open(data_set).unwrap();
+            let mut rdr = ReaderBuilder::new().from_reader(file);
             let mut algorithm = factory();
             println!(
                 "AlgoBenchmark(Algorithm: {:?} Dataset: {:?})",
@@ -46,7 +46,7 @@ pub fn benchmark_algorithms() {
 
 pub fn benchmark_algorithms_with_samplers() {
     let algorithm_factories: Vec<AlorithmFactory> = vec![
-        Box::new(|| Box::new(STREAM::new())),
+        Box::new(|| Box::new(Stream::new(5))),
         // Box::new(|| Box::new(Birch::new(5., 2))),
         Box::new(|| Box::new(CluStream::new())),
     ];

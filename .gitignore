@@ -7,3 +7,6 @@ Cargo.lock
 
 # Misc
 benchmark_data/synthetic
+
+# Python
+__pycache__

@@ -356,13 +356,13 @@ impl CFTree {
 }
 
 #[derive(Debug)]
-pub struct BIRCH {
+pub struct Birch {
     tree: CFTree,
 }
 
-impl BIRCH {
+impl Birch {
     pub fn new(threshold: f64, branching_factor: usize) -> Self {
-        BIRCH {
+        Birch {
             tree: CFTree::new(threshold, branching_factor),
         }
     }
@@ -376,7 +376,7 @@ impl BIRCH {
     }
 }
 
-impl super::DataStreamClusteringAlgorithm for BIRCH {
+impl super::DataStreamClusteringAlgorithm for Birch {
     fn insert(&mut self, data: Vec<f64>) {
         self.insert(data);
     }
