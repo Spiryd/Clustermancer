@@ -1,5 +1,6 @@
 use super::algorithms::{
-    birch::Birch, clustream::CluStream, stream::Stream, DataStreamClusteringAlgorithm,
+    birch::Birch, clustream::CluStream, denstream::Denstream, stream::Stream,
+    DataStreamClusteringAlgorithm,
 };
 use super::samplers::{dynamic_sampler::DynamicSampler, uniform_sampler::UniformSampler, Sampler};
 
@@ -20,6 +21,7 @@ pub fn benchmark_algorithms() {
         // Box::new(|| Box::new(BIRCH::new(5., 2))),
         Box::new(|| Box::new(Stream::new(5))),
         Box::new(|| Box::new(CluStream::new())),
+        Box::new(|| Box::new(Denstream::new())),
     ];
 
     for data_set in DATA_SETS.iter() {
@@ -49,6 +51,7 @@ pub fn benchmark_algorithms_with_samplers() {
         Box::new(|| Box::new(Stream::new(5))),
         // Box::new(|| Box::new(Birch::new(5., 2))),
         Box::new(|| Box::new(CluStream::new())),
+        Box::new(|| Box::new(Denstream::new())),
     ];
 
     let sampler_factories: Vec<SamplerFactory> = vec![
