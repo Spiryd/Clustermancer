@@ -4,9 +4,8 @@ use super::algorithms::{
 };
 use super::samplers::{dynamic_sampler::DynamicSampler, uniform_sampler::UniformSampler, Sampler};
 
-use csv::{Position, ReaderBuilder};
+use csv::ReaderBuilder;
 use std::fs::File;
-use std::time::Instant;
 
 const DATA_SETS: [&str; 2] = [
     "benchmark_data/demo.csv",
@@ -20,7 +19,7 @@ pub fn benchmark_algorithms() {
     let algorithm_factories: Vec<AlorithmFactory> = vec![
         // Box::new(|| Box::new(BIRCH::new(5., 2))),
         Box::new(|| Box::new(Stream::new(5))),
-        Box::new(|| Box::new(CluStream::new())),
+        //Box::new(|| Box::new(CluStream::new())),
         Box::new(|| Box::new(Denstream::new())),
     ];
 
@@ -56,7 +55,7 @@ pub fn benchmark_algorithms_with_samplers() {
 
     let sampler_factories: Vec<SamplerFactory> = vec![
         Box::new(|algorithm| Box::new(UniformSampler::new(algorithm))),
-        // Box::new(|algorithm| Box::new(DynamicSampler::new(algorithm))),
+        Box::new(|algorithm| Box::new(DynamicSampler::new(algorithm))),
     ];
 
     for data_set in DATA_SETS.iter() {

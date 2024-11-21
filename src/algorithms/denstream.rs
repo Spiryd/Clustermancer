@@ -64,14 +64,7 @@ fn initialize_p_micro_clusters(data: &Vec<Vec<f64>>, eps: f64, beta_mu: usize) -
 }
 
 #[derive(Debug, Clone)]
-struct CoreMicroCluster {
-    weight: f64,
-    center: Point,
-    radius: f64,
-}
-
-#[derive(Debug, Clone)]
-struct PotentialMicroCluster {
+pub struct PotentialMicroCluster {
     weight: f64,
     cf1: Point,
     cf2: f64,
@@ -103,11 +96,11 @@ impl PotentialMicroCluster {
         }
     }
 
-    fn center(&self) -> Point {
+    pub fn center(&self) -> Point {
         self.cf1.iter().map(|p_x| p_x / self.weight).collect()
     }
 
-    fn radius(&self) -> f64 {
+    pub fn radius(&self) -> f64 {
         f64::sqrt(self.cf2 / self.weight - self.center().iter().map(|x| x.powi(2)).sum::<f64>())
     }
 
@@ -311,7 +304,65 @@ impl Denstream {
         self.small_clock += 1;
     }
 
-    pub fn clustering_request(&mut self) {}
+    fn is_directly_density_reachable(&self, cp: &PotentialMicroCluster, cq: &PotentialMicroCluster, epsilon: f64, mu: f64) -> bool {
+        cq.weight >= mu && distance(&cp.center(), &cq.center()) <= 2.0 * epsilon
+    }
+
+    fn is_density_reachable(&self, cp: &PotentialMicroCluster, cq: &PotentialMicroCluster, epsilon: f64, mu: f64) -> bool {
+        let mut visited = Vec::new();
+        let mut to_visit = vec![cq];
+
+        while let Some(current) = to_visit.pop() {
+            if visited.iter().any(|v| v == &current.center()) {
+                continue;
+            }
+            visited.push(current.center().clone());
+
+            if self.is_directly_density_reachable(cp, current, epsilon, mu) {
+                return true;
+            }
+
+            for neighbor in &self.potential_micro_clusters {
+                if self.is_directly_density_reachable(current, neighbor, epsilon, mu) {
+                    to_visit.push(neighbor);
+                }
+            }
+        }
+
+        false
+    }
+
+    pub fn clustering_request(&mut self) -> Vec<Vec<PotentialMicroCluster>> {
+        let mut clusters = Vec::new();
+        let mut visited = Vec::new();
+
+        for cp in &self.potential_micro_clusters {
+            if visited.iter().any(|v| v == &cp.center()) {
+                continue;
+            }
+
+            let mut cluster = Vec::new();
+            let mut to_visit = vec![cp];
+
+            while let Some(current) = to_visit.pop() {
+                if visited.iter().any(|v| v == &current.center()) {
+                    continue;
+                }
+                visited.push(current.center().clone());
+                cluster.push(current.clone());
+
+                for neighbor in &self.potential_micro_clusters {
+                    if self.is_density_reachable(current, neighbor, EPSILON, MI) {
+                        to_visit.push(neighbor);
+                    }
+                }
+            }
+
+            clusters.push(cluster);
+        }
+
+        clusters
+    }
 }
 
 impl super::DataStreamClusteringAlgorithm for Denstream {

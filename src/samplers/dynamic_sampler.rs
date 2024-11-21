@@ -13,7 +13,7 @@ impl DynamicSampler {
 
 impl Sampler for DynamicSampler {
     fn insert(&mut self, data: Vec<f64>) {
-        todo!()
+        
     }
     fn name(&self) -> String {
         "DynamicSampler".to_string()

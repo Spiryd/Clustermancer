@@ -42,5 +42,8 @@ fn test() {
             println!("Item: {}", idx);
         }
     }
-    println!("Algo: {:?}", denstream);
+    println!("{:?}", denstream.clustering_request());
+    for (i, cluster) in denstream.clustering_request().iter().enumerate() {
+        println!("Cluster {}: {:?}", i, cluster.iter().map(|x| x.center()));
+    }
 }
