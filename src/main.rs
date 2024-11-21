@@ -4,7 +4,6 @@ mod samplers;
 use benchmark::{benchmark_algorithms, benchmark_algorithms_with_samplers};
 
 use dialoguer::{theme::ColorfulTheme, Select};
-use serde::de;
 
 fn main() {
     let options = [
@@ -39,8 +38,8 @@ fn test() {
         .enumerate()
     {
         denstream.insert(data);
-        if idx % 100 == 0 {
-            denstream.print_state();
+        if idx % 10_000 == 0 {
+            println!("Item: {}", idx);
         }
     }
     println!("Algo: {:?}", denstream);

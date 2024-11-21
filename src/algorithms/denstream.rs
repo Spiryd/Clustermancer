@@ -1,8 +1,10 @@
 // lambda > 0
-const LAMBDA: f64 = 0.1;
+const LAMBDA: f64 = 0.2;
 const MI: f64 = 2.0;
 const EPSILON: f64 = 2.;
 const BETA: f64 = 0.6;
+const INIT_N: usize = 100;
+const V: usize = 20;
 type Point = Vec<f64>;
 
 fn calculate_t_p() -> usize {
@@ -23,6 +25,44 @@ fn distance(a: &Point, b: &Point) -> f64 {
         .sqrt()
 }
 
+fn region_query(data: &Vec<Point>, point_idx: usize, eps: f64) -> Vec<usize> {
+    data.iter()
+        .enumerate()
+        .filter(|(idx, point)| distance(&data[point_idx], point) <= eps && *idx != point_idx)
+        .map(|(idx, _)| idx)
+        .collect()
+}
+
+fn initialize_p_micro_clusters(data: &Vec<Vec<f64>>, eps: f64, beta_mu: usize) -> Vec<Vec<usize>> {
+    let mut visited = vec![false; data.len()];
+    let mut clusters = Vec::new();
+
+    for point_idx in 0..data.len() {
+        if visited[point_idx] {
+            continue;
+        }
+
+        let neighbors = region_query(&data, point_idx, eps);
+
+        // Only form a micro-cluster if the density is above beta_mu
+        if neighbors.len() + 1 >= beta_mu {
+            let mut micro_cluster = Vec::new();
+            visited[point_idx] = true;
+
+            for &neighbor_idx in &neighbors {
+                if !visited[neighbor_idx] {
+                    micro_cluster.push(neighbor_idx);
+                    visited[neighbor_idx] = true;
+                }
+            }
+
+            clusters.push(micro_cluster);
+        }
+    }
+
+    clusters
+}
+
 #[derive(Debug, Clone)]
 struct CoreMicroCluster {
     weight: f64,
@@ -39,7 +79,22 @@ struct PotentialMicroCluster {
 }
 
 impl PotentialMicroCluster {
-    fn new(outlier: OutlierMicroCluster) -> PotentialMicroCluster {
+    fn new(points: Vec<Point>) -> PotentialMicroCluster {
+        let weight = points.len() as f64;
+        let cf1 = points.iter().fold(vec![0_f64; points[0].len()], |acc, p| {
+            acc.iter().zip(p.iter()).map(|(x, y)| x + y).collect()
+        });
+        let cf2 = points.iter().map(|p| p.iter().map(|x| x.powi(2)).sum::<f64>()).sum::<f64>();
+        let last_update = 0;
+        PotentialMicroCluster {
+            weight,
+            cf1,
+            cf2,
+            last_update,
+        }
+    }
+
+    fn from_outlier(outlier: OutlierMicroCluster) -> PotentialMicroCluster {
         PotentialMicroCluster {
             weight: outlier.weight,
             cf1: outlier.cf1,
@@ -58,7 +113,7 @@ impl PotentialMicroCluster {
 
     fn update(&mut self, timestamp: usize) {
         let decay = decay_function((timestamp - self.last_update) as f64);
-        self.weight = self.weight * decay;
+        self.weight *= decay;
         self.cf1 = self.cf1.iter().map(|x| x * decay).collect();
         self.cf2 *= decay;
         self.last_update = timestamp;
@@ -138,19 +193,25 @@ impl OutlierMicroCluster {
 
 #[derive(Debug)]
 pub struct Denstream {
+    initial_buffer: Vec<Point>,
+    initialised: bool,
     potential_micro_clusters: Vec<PotentialMicroCluster>,
     outlier_micro_clusters: Vec<OutlierMicroCluster>,
     t_p: usize,
     clock: usize,
+    small_clock: usize,
 }
 
 impl Denstream {
     pub fn new() -> Denstream {
         Denstream {
+            initial_buffer: Vec::new(),
+            initialised: false,
             potential_micro_clusters: Vec::new(),
             outlier_micro_clusters: Vec::new(),
             t_p: calculate_t_p(),
             clock: 0,
+            small_clock: 0,
         }
     }
 
@@ -191,7 +252,7 @@ impl Denstream {
                 if after_merge_outlier.weight > BETA * MI {
                     self.outlier_micro_clusters.remove(idx);
                     self.potential_micro_clusters
-                        .push(PotentialMicroCluster::new(after_merge_outlier));
+                        .push(PotentialMicroCluster::from_outlier(after_merge_outlier));
                 } else {
                     self.outlier_micro_clusters[idx] = after_merge_outlier;
                 }
@@ -204,6 +265,24 @@ impl Denstream {
     }
 
     pub fn insert(&mut self, data: Point) {
+        if !self.initialised {
+            self.initial_buffer.push(data);
+            if self.initial_buffer.len() >= INIT_N {
+                self.initialised = true;
+                let mappings = initialize_p_micro_clusters(
+                    &self.initial_buffer,
+                    EPSILON,
+                    (BETA * MI) as usize,
+                );
+                for mapping in mappings {
+                    if mapping.len() > 0 {
+                        self.potential_micro_clusters.push(PotentialMicroCluster::new(mapping.iter().map(|&idx| self.initial_buffer[idx].clone()).collect()));
+                    }
+                }
+                self.initial_buffer.clear();
+            }
+            return;
+        }
         // 1. Merge data point with potential micro-clusters
         self.merge(data);
         if self.clock % self.t_p == 0 {
@@ -225,17 +304,14 @@ impl Denstream {
             indexes_to_remove.iter().for_each(|idx| {
                 self.outlier_micro_clusters.remove(*idx);
             });
-
         }
-        self.clock += 1;
+        if self.small_clock % V == 0 {
+            self.clock += 1;
+        }
+        self.small_clock += 1;
     }
 
     pub fn clustering_request(&mut self) {}
-
-    pub fn print_state(&self) {
-        println!("Potential micro-cluster count: {}", self.potential_micro_clusters.len());
-        println!("Outlier micro-cluster count: {}", self.outlier_micro_clusters.len());
-    }
 }
 
 impl super::DataStreamClusteringAlgorithm for Denstream {
