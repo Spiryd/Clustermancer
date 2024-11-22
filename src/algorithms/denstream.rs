@@ -25,7 +25,7 @@ fn distance(a: &Point, b: &Point) -> f64 {
         .sqrt()
 }
 
-fn region_query(data: &Vec<Point>, point_idx: usize, eps: f64) -> Vec<usize> {
+fn region_query(data: &[Point], point_idx: usize, eps: f64) -> Vec<usize> {
     data.iter()
         .enumerate()
         .filter(|(idx, point)| distance(&data[point_idx], point) <= eps && *idx != point_idx)
@@ -33,7 +33,7 @@ fn region_query(data: &Vec<Point>, point_idx: usize, eps: f64) -> Vec<usize> {
         .collect()
 }
 
-fn initialize_p_micro_clusters(data: &Vec<Vec<f64>>, eps: f64, beta_mu: usize) -> Vec<Vec<usize>> {
+fn initialize_p_micro_clusters(data: &[Vec<f64>], eps: f64, beta_mu: usize) -> Vec<Vec<usize>> {
     let mut visited = vec![false; data.len()];
     let mut clusters = Vec::new();
 
@@ -42,7 +42,7 @@ fn initialize_p_micro_clusters(data: &Vec<Vec<f64>>, eps: f64, beta_mu: usize) -
             continue;
         }
 
-        let neighbors = region_query(&data, point_idx, eps);
+        let neighbors = region_query(data, point_idx, eps);
 
         // Only form a micro-cluster if the density is above beta_mu
         if neighbors.len() + 1 >= beta_mu {
@@ -268,7 +268,7 @@ impl Denstream {
                     (BETA * MI) as usize,
                 );
                 for mapping in mappings {
-                    if mapping.len() > 0 {
+                    if !mapping.is_empty() {
                         self.potential_micro_clusters.push(PotentialMicroCluster::new(mapping.iter().map(|&idx| self.initial_buffer[idx].clone()).collect()));
                     }
                 }

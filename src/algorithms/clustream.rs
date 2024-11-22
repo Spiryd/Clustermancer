@@ -247,7 +247,7 @@ impl SnapshotVault {
             snapshots[*idx] = Some(snapshot);
             *idx = (*idx + 1) % ALPHA_L;
         } else {
-            println!("New order {}", order);
+            // println!("New order {}", order);
             let mut snapshots = vec![None; 5];
             snapshots[0] = Some(snapshot);
             self.snapshots.insert(order, (snapshots, 1));
@@ -341,7 +341,7 @@ impl CluStream {
                 self.micro_clusters[min_cluster_idx].0 += MicroCluster::new(instance, self.clock);
                 // println!("Added to cluster {}", self.micro_clusters[min_cluster_idx].1);
             } else if self.micro_clusters.len() < Q {
-                println!("New cluster(Quota not reached)");
+                // println!("New cluster(Quota not reached)");
                 self.micro_clusters
                     .push((MicroCluster::new(instance, self.clock), vec![self.next_id]));
                 self.next_id += 1;
@@ -357,7 +357,7 @@ impl CluStream {
                     // Prune outliers
                     self.micro_clusters[least_relevant.0] =
                         (MicroCluster::new(instance, self.clock), vec![self.next_id]);
-                    println!("Replaced least relevant with id {}", self.next_id);
+                    // println!("Replaced least relevant with id {}", self.next_id);
                     self.next_id += 1;
                 } else {
                     // Merge

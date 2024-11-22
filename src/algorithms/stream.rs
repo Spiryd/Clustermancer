@@ -3,7 +3,7 @@ use rand_pcg::Pcg64;
 
 type Point = Vec<f64>;
 
-const M: usize = 100;
+const M: usize = 200;
 const ALPHA: usize = 2;
 
 const EPSILON: f64 = 0.1;
@@ -21,7 +21,7 @@ fn distance(a: &Point, b: &Point) -> f64 {
 pub struct Stream {
     k: usize,
     buffer: Vec<Point>,
-    intermediate_median_points: Vec<Point>,
+    intermediate_median_points: Vec<(Point, usize)>,
     rng: Pcg64,
 }
 
@@ -69,53 +69,199 @@ impl Stream {
         epsilon: f64,
         (i, a): (Vec<usize>, Vec<usize>),
     ) -> (Vec<usize>, Vec<usize>) {
-        let total_cost = facility_cost * (i.len() as f64)
+        let mut cost = facility_cost * (i.len() as f64)
             + data_set
                 .iter()
                 .enumerate()
                 .map(|(i, x)| distance(x, &data_set[a[i]]))
                 .sum::<f64>();
-        let mut improvement = true;
-        let mut feasables: Vec<usize> = (0..data_set.len()).collect();
-        while improvement {
-            improvement = false;
-            feasables.shuffle(&mut self.rng);
-            for &y_idx in &feasables {
-                let gain = if i.contains(&y_idx) { 
-                    facility_cost - distance(&data_set[y_idx], &data_set[a[y_idx]])
-                } else { 
-                    distance(&data_set[y_idx], &data_set[a[y_idx]]) - facility_cost
-                };
+        let mut shuffled_indexes: Vec<usize> = (0..data_set.len()).collect();
+
+        let mut potential_i = i.clone();
+        let mut potential_a = a.clone();
+
+        loop {
+            shuffled_indexes.shuffle(&mut self.rng);
+
+            for &idx_y in &shuffled_indexes {
+                // Calcualate gain
+                let mut gain = 0.0;
+                let mut potential_potential_i = potential_i.clone();
+                let mut potential_potential_a = potential_a.clone();
+                if i.contains(&idx_y) {
+                    // Gain for removing y
+                    gain += facility_cost;
+                    potential_potential_i.retain(|&x| x != idx_y);
+                    let children  = potential_potential_a.iter().enumerate().filter(|(_, &x)| x == idx_y).map(|(i, _)| i).collect::<Vec<usize>>();
+                    for child in children {
+                        let (facility_mapping, mapping_cost) = potential_potential_i
+                            .iter()
+                            .map(|&facility| {
+                                (facility, distance(&data_set[child], &data_set[facility]))
+                            })
+                            .min_by(|(_, d1), (_, d2)| d1.partial_cmp(d2).unwrap())
+                            .unwrap();
+                        gain += mapping_cost;
+                        potential_potential_a[child] = facility_mapping;
+                    }
+                    let (facility_mapping, mapping_cost) = potential_potential_i
+                        .iter()
+                        .map(|&facility| {
+                            (facility, distance(&data_set[idx_y], &data_set[facility]))
+                        })
+                        .min_by(|(_, d1), (_, d2)| d1.partial_cmp(d2).unwrap())
+                        .unwrap();
+                    gain -= mapping_cost;
+                    potential_potential_a[idx_y] = facility_mapping;
+                } else {
+                    // Gain for adding y
+                    gain -= facility_cost;
+                    potential_potential_i.push(idx_y);
+                    for idx_x in 0..data_set.len() {
+                        let distance_x_y = distance(&data_set[idx_x], &data_set[idx_y]);
+                        if distance_x_y
+                            < distance(&data_set[idx_x], &data_set[potential_potential_a[idx_x]])
+                        {
+                            potential_potential_a[idx_x] = idx_y;
+                            gain += distance_x_y
+                                - distance(
+                                    &data_set[idx_x],
+                                    &data_set[potential_potential_a[idx_x]],
+                                );
+                        }
+                    }
+                    // check if any facility is redundant
+                    let mut counts = vec![0; data_set.len()];
+                    for &idx in &potential_potential_a {
+                        counts[idx] += 1;
+                    }
+                    for (idx, &count) in counts.iter().enumerate() {
+                        if count == 1 {
+                            // check if close idx is beneficial
+                            let (facility_mapping, mapping_cost) = potential_potential_i
+                                .iter()
+                                .map(|&facility| {
+                                    (facility, distance(&data_set[idx], &data_set[facility]))
+                                })
+                                .min_by(|(_, d1), (_, d2)| d1.partial_cmp(d2).unwrap())
+                                .unwrap();
+                            if mapping_cost < facility_cost {
+                                gain += facility_cost;
+                                gain -= mapping_cost;
+                                potential_potential_a[idx] = facility_mapping;
+                                potential_potential_i.retain(|&x| x != idx);
+                            }
+                        }
+                    }
+                }
+                if gain > 0.0 {
+                    potential_a = potential_potential_a;
+                    potential_i = potential_potential_i;
+                    println!("new cost: {:?}", facility_cost * (potential_i.len() as f64)
+                    + data_set
+                        .iter()
+                        .enumerate()
+                        .map(|(i, x)| distance(x, &data_set[potential_a[i]]))
+                        .sum::<f64>())
+                }
+            }
+            let new_cost = facility_cost * (potential_i.len() as f64)
+                + data_set
+                    .iter()
+                    .enumerate()
+                    .map(|(i, x)| distance(x, &data_set[potential_a[i]]))
+                    .sum::<f64>();
+            if new_cost <= cost * (1.0 - epsilon) {
+                cost = new_cost;
+            } else {
+                break;
             }
         }
-        todo!()
+        (potential_i, potential_a)
     }
 
-    fn lsearch(&mut self, data_set: &Vec<Point>, k: usize) {
+    fn lsearch(&mut self, data_set: &Vec<Point>, k: usize) -> (Vec<Point>, Vec<usize>) {
         // x_0 an arbitrary point in N
         let x_0 = data_set.choose(&mut self.rng).unwrap();
         // 1. z_min = 0
-        let z_min = 0.0;
+        let mut z_min = 0.0;
         // 2. z_max = sum(distance(x, x_0) for x in data_set)
-        let z_max: f64 = data_set.iter().map(|x| distance(x, x_0)).sum::<f64>();
+        let mut z_max: f64 = data_set.iter().map(|x| distance(x, x_0)).sum::<f64>();
         // 3. z = (z_min + z_max) / 2
-        let z = (z_min + z_max) / 2.0;
+        let mut z = (z_min + z_max) / 2.0;
         // 4. InitialSolution
-        let (i, a) = self.initial_solution(data_set, z);
+        let (mut i, a) = self.initial_solution(data_set, z);
         // 5. Randomly pick Θ( 1/p log k) points as feasible medians
         // let mut feasible_medians: Vec<usize> = i.choose_multiple(&mut self.rng, (self.k as f64).log2() as usize).cloned().collect();
-        // 6. While #medians =/= k and z_min < (1 - eplsion'')z_max
-        let (f, g) = (i, a);
-        while f.len() != self.k && z_min < (1.0 - EPSILON_DOUBLE_PRIME) * z_max {
-            let (f_prim, g_prim) =
-                self.facility_location(data_set, z, EPSILON, (f.clone(), g.clone()));
+        let mut feasible_medians: Vec<usize> = Vec::new();
+        while feasible_medians.len() < (self.k as f64).log2().ceil() as usize {
+            let idx = self.rng.gen_range(0..data_set.len());
+            if !feasible_medians.contains(&idx) {
+                feasible_medians.push(idx);
+            }
         }
+        for idx in feasible_medians {
+            if !i.contains(&idx) {
+                i.push(idx);
+            }
+        }
+        // 6. While #medians =/= k and z_min < (1 - eplsion'')z_max
+        let (mut f, mut g) = (i, a);
+
+        while f.len() != self.k && z_min < (1.0 - EPSILON_DOUBLE_PRIME) * z_max {
+            let (mut f_prim, mut g_prim) =
+                self.facility_location(data_set, z, EPSILON, (f.clone(), g.clone()));
+            if f_prim.len() == self.k {
+                (f_prim, g_prim) =
+                    self.facility_location(data_set, z, EPSILON_PRIME, (f_prim, g_prim));
+            }
+            if f_prim.len() > self.k {
+                z_min = z;
+                z = (z_min + z_max) / 2.0;
+            } else if f_prim.len() < self.k {
+                z_max = z;
+                z = (z_min + z_max) / 2.0;
+            }
+            f = f_prim;
+            g = g_prim;
+        }
+        let mut centroids: Vec<Point> = Vec::new();
+        for facility in f {
+            // compute centeroid
+            let cluster: Vec<Point> = data_set
+                .iter()
+                .enumerate()
+                .filter(|x| g[x.0] == facility)
+                .map(|x| x.1)
+                .cloned()
+                .collect();
+            if cluster.is_empty() {
+                continue;
+            }
+            centroids.push(
+                cluster
+                    .iter()
+                    .cloned()
+                    .reduce(|a, b| {
+                        a.iter()
+                            .zip(b.iter())
+                            .map(|(x, y)| x + y)
+                            .collect::<Point>()
+                    })
+                    .unwrap()
+                    .iter()
+                    .map(|x| x / (cluster.len() as f64))
+                    .collect(),
+            );
+        }
+
+        (centroids, g)
     }
 
     pub fn insert(&mut self, data: Point) {
         self.buffer.push(data);
         if self.buffer.len() >= (M / self.k) * ALPHA {
-            // todo: implement the algorithm
+            println!("{:?}", self.lsearch(&self.buffer.clone(), self.k));
             self.buffer.clear();
         }
     }

@@ -7,9 +7,12 @@ use super::samplers::{dynamic_sampler::DynamicSampler, uniform_sampler::UniformS
 use csv::ReaderBuilder;
 use std::fs::File;
 
-const DATA_SETS: [&str; 2] = [
+const DATA_SETS: [&str; 5] = [
     "benchmark_data/demo.csv",
     "benchmark_data/synthetic/random_5k_2d.csv",
+    "benchmark_data/synthetic/random_5k_4d.csv",
+    "benchmark_data/synthetic/random_5k_5d.csv",
+    "benchmark_data/synthetic/random_5k_10d.csv",
 ];
 
 type AlorithmFactory = Box<dyn Fn() -> Box<dyn DataStreamClusteringAlgorithm>>;
@@ -19,7 +22,7 @@ pub fn benchmark_algorithms() {
     let algorithm_factories: Vec<AlorithmFactory> = vec![
         // Box::new(|| Box::new(BIRCH::new(5., 2))),
         Box::new(|| Box::new(Stream::new(5))),
-        //Box::new(|| Box::new(CluStream::new())),
+        Box::new(|| Box::new(CluStream::new())),
         Box::new(|| Box::new(Denstream::new())),
     ];
 
