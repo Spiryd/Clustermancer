@@ -27,23 +27,20 @@ fn main() {
 }
 
 fn test() {
-    use algorithms::denstream::Denstream;
+    use algorithms::birch::Birch;
     use rand::{thread_rng, Rng};
 
-    let mut denstream = Denstream::new();
-    let h: usize = 1_000_000;
+    let mut birch = Birch::new(8., 10);
+    let h: usize = 100_000;
     for (idx, data) in (0..h)
         .map(|_| thread_rng().gen_range(0..100))
         .map(|x| vec![x as f64])
         .enumerate()
     {
-        denstream.insert(data);
-        if idx % 10_000 == 0 {
+        birch.insert(data);
+        if idx % 10_000 == 0 {  
             println!("Item: {}", idx);
         }
     }
-    println!("{:?}", denstream.clustering_request());
-    for (i, cluster) in denstream.clustering_request().iter().enumerate() {
-        println!("Cluster {}: {:?}", i, cluster.iter().map(|x| x.center()));
-    }
+    birch.print_tree();
 }

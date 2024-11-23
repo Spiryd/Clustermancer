@@ -21,7 +21,7 @@ fn distance(a: &Point, b: &Point) -> f64 {
 pub struct Stream {
     k: usize,
     buffer: Vec<Point>,
-    intermediate_median_points: Vec<(Point, usize)>,
+    _intermediate_median_points: Vec<(Point, usize)>,
     rng: Pcg64,
 }
 
@@ -30,7 +30,7 @@ impl Stream {
         Stream {
             k,
             buffer: Vec::new(),
-            intermediate_median_points: Vec::new(),
+            _intermediate_median_points: Vec::new(),
             rng: Pcg64::from_entropy(),
         }
     }
@@ -92,7 +92,12 @@ impl Stream {
                     // Gain for removing y
                     gain += facility_cost;
                     potential_potential_i.retain(|&x| x != idx_y);
-                    let children  = potential_potential_a.iter().enumerate().filter(|(_, &x)| x == idx_y).map(|(i, _)| i).collect::<Vec<usize>>();
+                    let children = potential_potential_a
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, &x)| x == idx_y)
+                        .map(|(i, _)| i)
+                        .collect::<Vec<usize>>();
                     for child in children {
                         let (facility_mapping, mapping_cost) = potential_potential_i
                             .iter()
@@ -157,12 +162,15 @@ impl Stream {
                 if gain > 0.0 {
                     potential_a = potential_potential_a;
                     potential_i = potential_potential_i;
-                    println!("new cost: {:?}", facility_cost * (potential_i.len() as f64)
-                    + data_set
-                        .iter()
-                        .enumerate()
-                        .map(|(i, x)| distance(x, &data_set[potential_a[i]]))
-                        .sum::<f64>())
+                    println!(
+                        "new cost: {:?}",
+                        facility_cost * (potential_i.len() as f64)
+                            + data_set
+                                .iter()
+                                .enumerate()
+                                .map(|(i, x)| distance(x, &data_set[potential_a[i]]))
+                                .sum::<f64>()
+                    )
                 }
             }
             let new_cost = facility_cost * (potential_i.len() as f64)
@@ -180,7 +188,7 @@ impl Stream {
         (potential_i, potential_a)
     }
 
-    fn lsearch(&mut self, data_set: &Vec<Point>, k: usize) -> (Vec<Point>, Vec<usize>) {
+    fn lsearch(&mut self, data_set: &Vec<Point>) -> (Vec<Point>, Vec<usize>) {
         // x_0 an arbitrary point in N
         let x_0 = data_set.choose(&mut self.rng).unwrap();
         // 1. z_min = 0
@@ -261,7 +269,7 @@ impl Stream {
     pub fn insert(&mut self, data: Point) {
         self.buffer.push(data);
         if self.buffer.len() >= (M / self.k) * ALPHA {
-            println!("{:?}", self.lsearch(&self.buffer.clone(), self.k));
+            println!("{:?}", self.lsearch(&self.buffer.clone()));
             self.buffer.clear();
         }
     }
