@@ -1,5 +1,5 @@
-use crate::algorithms::DataStreamClusteringAlgorithm;
 use super::Sampler;
+use crate::algorithms::DataStreamClusteringAlgorithm;
 use rand::prelude::*;
 use rand_pcg::Pcg64;
 
@@ -11,7 +11,11 @@ pub struct UniformSampler {
 
 impl UniformSampler {
     pub fn new(algorithm: Box<dyn DataStreamClusteringAlgorithm>) -> Self {
-        Self { algorithm, counter: 1, rng: Pcg64::from_entropy() }
+        Self {
+            algorithm,
+            counter: 1,
+            rng: Pcg64::from_entropy(),
+        }
     }
 }
 

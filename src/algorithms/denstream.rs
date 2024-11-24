@@ -4,7 +4,7 @@ const MI: f64 = 2.0;
 const EPSILON: f64 = 2.;
 const BETA: f64 = 0.6;
 const INIT_N: usize = 100;
-const V: usize = 20;
+const V: usize = 50;
 type Point = Vec<f64>;
 
 fn calculate_t_p() -> usize {
@@ -77,7 +77,10 @@ impl PotentialMicroCluster {
         let cf1 = points.iter().fold(vec![0_f64; points[0].len()], |acc, p| {
             acc.iter().zip(p.iter()).map(|(x, y)| x + y).collect()
         });
-        let cf2 = points.iter().map(|p| p.iter().map(|x| x.powi(2)).sum::<f64>()).sum::<f64>();
+        let cf2 = points
+            .iter()
+            .map(|p| p.iter().map(|x| x.powi(2)).sum::<f64>())
+            .sum::<f64>();
         let last_update = 0;
         PotentialMicroCluster {
             weight,
@@ -269,7 +272,13 @@ impl Denstream {
                 );
                 for mapping in mappings {
                     if !mapping.is_empty() {
-                        self.potential_micro_clusters.push(PotentialMicroCluster::new(mapping.iter().map(|&idx| self.initial_buffer[idx].clone()).collect()));
+                        self.potential_micro_clusters
+                            .push(PotentialMicroCluster::new(
+                                mapping
+                                    .iter()
+                                    .map(|&idx| self.initial_buffer[idx].clone())
+                                    .collect(),
+                            ));
                     }
                 }
                 self.initial_buffer.clear();
@@ -304,11 +313,23 @@ impl Denstream {
         self.small_clock += 1;
     }
 
-    fn is_directly_density_reachable(&self, cp: &PotentialMicroCluster, cq: &PotentialMicroCluster, epsilon: f64, mu: f64) -> bool {
+    fn is_directly_density_reachable(
+        &self,
+        cp: &PotentialMicroCluster,
+        cq: &PotentialMicroCluster,
+        epsilon: f64,
+        mu: f64,
+    ) -> bool {
         cq.weight >= mu && distance(&cp.center(), &cq.center()) <= 2.0 * epsilon
     }
 
-    fn is_density_reachable(&self, cp: &PotentialMicroCluster, cq: &PotentialMicroCluster, epsilon: f64, mu: f64) -> bool {
+    fn is_density_reachable(
+        &self,
+        cp: &PotentialMicroCluster,
+        cq: &PotentialMicroCluster,
+        epsilon: f64,
+        mu: f64,
+    ) -> bool {
         let mut visited = Vec::new();
         let mut to_visit = vec![cq];
 
@@ -332,7 +353,7 @@ impl Denstream {
         false
     }
 
-    pub fn clustering_request(&mut self) -> Vec<Vec<PotentialMicroCluster>> {
+    pub fn clustering_request(&self) -> Vec<Vec<PotentialMicroCluster>> {
         let mut clusters = Vec::new();
         let mut visited = Vec::new();
 
@@ -369,7 +390,20 @@ impl super::DataStreamClusteringAlgorithm for Denstream {
     fn insert(&mut self, data: Point) {
         self.insert(data);
     }
-
+    fn clusters(&self) -> Vec<super::ClusteringElement> {
+        let clusters = self.clustering_request();
+        clusters
+            .iter()
+            .enumerate()
+            .flat_map(|(idx, cluster)| {
+                cluster.iter().map(move |c| super::ClusteringElement {
+                    center: c.center(),
+                    radius: c.radius(),
+                    cluster: idx,
+                })
+            })
+            .collect()
+    }
     fn name(&self) -> String {
         "Denstream".to_string()
     }

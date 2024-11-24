@@ -421,6 +421,9 @@ impl super::DataStreamClusteringAlgorithm for CluStream {
     fn insert(&mut self, data: Vec<f64>) {
         self.insert(data);
     }
+    fn clusters(&self) -> Vec<super::ClusteringElement> {
+        todo!()
+    }
     fn name(&self) -> String {
         "CluStream".to_string()
     }

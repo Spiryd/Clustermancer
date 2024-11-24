@@ -1,9 +1,11 @@
 use std::{collections::VecDeque, fmt::Debug};
 
+const L: usize = 20;
+const MAX_ITERATIONS: usize = 10000;
 type Point = Vec<f64>;
 
 #[derive(Debug, Clone)]
-struct ClusteringFeature {
+pub struct ClusteringFeature {
     n: usize,
     ls: Point,
     ss: f64,
@@ -26,7 +28,7 @@ impl ClusteringFeature {
     }
 
     fn radius(&self) -> f64 {
-        (self.ss / self.n as f64) - (self.centroid().iter().map(|&c| c * c).sum::<f64>().sqrt())
+        f64::sqrt((self.ss / self.n as f64) - self.centroid().iter().map(|x| x.powi(2)).sum::<f64>())
     }
 
     /// Euclidean distance_0
@@ -78,6 +80,62 @@ impl std::ops::AddAssign for ClusteringFeature {
     }
 }
 
+fn kmeans(features: &[ClusteringFeature], k: usize, max_iterations: usize) -> Vec<usize> {
+    let mut centroids: Vec<Point> = features.iter().take(k).map(|cf| cf.centroid()).collect();
+    let mut assignments = vec![0; features.len()];
+
+    for _ in 0..max_iterations {
+        // Assign clusters
+        for (i, feature) in features.iter().enumerate() {
+            let distances: Vec<f64> = centroids
+                .iter()
+                .map(|centroid| {
+                    feature
+                        .centroid()
+                        .iter()
+                        .zip(centroid.iter())
+                        .map(|(&a, &b)| (a - b).powi(2))
+                        .sum::<f64>()
+                        .sqrt()
+                })
+                .collect();
+            let (min_index, _) = distances
+                .iter()
+                .enumerate()
+                .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+                .unwrap();
+            assignments[i] = min_index;
+        }
+
+        // Update centroids
+        let mut new_centroids = vec![vec![0.0; centroids[0].len()]; k];
+        let mut counts = vec![0; k];
+
+        for (assignment, feature) in assignments.iter().zip(features.iter()) {
+            for (i, value) in feature.centroid().iter().enumerate() {
+                new_centroids[*assignment][i] += value;
+            }
+            counts[*assignment] += 1;
+        }
+
+        for (centroid, count) in new_centroids.iter_mut().zip(counts.iter()) {
+            if *count > 0 {
+                for value in centroid.iter_mut() {
+                    *value /= *count as f64;
+                }
+            }
+        }
+
+        if centroids == new_centroids {
+            break;
+        }
+
+        centroids = new_centroids;
+    }
+
+    assignments
+}
+
 #[derive(Clone, Debug)]
 enum CFNode {
     Leaf {
@@ -95,13 +153,6 @@ enum CFNode {
 }
 
 impl CFNode {
-    fn id(&self) -> usize {
-        match self {
-            CFNode::Leaf { id, .. } => *id,
-            CFNode::NonLeaf { id, .. } => *id,
-        }
-    }
-
     fn parent_id(&self) -> Option<usize> {
         match self {
             CFNode::Leaf { parent_id, .. } => *parent_id,
@@ -211,7 +262,7 @@ impl CFTree {
                             // Absorb
                             *closest_feature += entry;
                             self.refresh_tree_from(current_search_id);
-                        } else if features.len() < self.branching_factor {
+                        } else if features.len() <= L {
                             // Insert
                             features.push(entry);
                             self.refresh_tree_from(current_search_id);
@@ -286,18 +337,18 @@ impl CFTree {
                 let b_id = self.next_id;
                 self.next_id += 1;
                 let mut leaf_split_a = CFNode::Leaf {
-                    id: id,
+                    id,
                     features: group_a,
-                    prev: prev.clone(),
+                    prev,
                     next: Some(b_id),
-                    parent_id: parent_id,
+                    parent_id,
                 };
                 let mut leaf_split_b = CFNode::Leaf {
                     id: b_id,
                     features: group_b,
                     prev: Some(id),
-                    next: next.clone(),
-                    parent_id: parent_id,
+                    next,
+                    parent_id,
                 };
                 if let Some(parent_id) = parent_id {
                     // Update parent
@@ -305,15 +356,12 @@ impl CFTree {
                     let sum_b = leaf_split_b.sum();
                     self.arena[id] = leaf_split_a;
                     self.arena.push(leaf_split_b);
-                    match &mut self.arena[parent_id] {
-                        CFNode::NonLeaf { features, .. } => {
-                            features.push((sum_b, b_id));
-                            features.iter_mut().find(|(_, i)| *i == id).unwrap().0 = sum_a;
-                            if features.len() > self.branching_factor {
-                                self.split(parent_id);
-                            }
+                    if let CFNode::NonLeaf { features, .. } = &mut self.arena[parent_id] {
+                        features.push((sum_b, b_id));
+                        features.iter_mut().find(|(_, i)| *i == id).unwrap().0 = sum_a;
+                        if features.len() > self.branching_factor {
+                            self.split(parent_id);
                         }
-                        _ => {}
                     }
                 } else {
                     // Create new root
@@ -350,33 +398,38 @@ impl CFTree {
                             .map(move |(j, p2)| (i, j, p1, p2))
                     })
                     .max_by(|(_, _, p1, p2), (_, _, q1, q2)| {
-                        p1.0.distance_0(&p2.0).partial_cmp(&q1.0.distance_0(&q2.0)).unwrap()
+                        p1.0.distance_0(&p2.0)
+                            .partial_cmp(&q1.0.distance_0(&q2.0))
+                            .unwrap()
                     })
                     .unwrap();
-                let (mut group_a, mut group_b): (Vec<(ClusteringFeature, usize)>, Vec<(ClusteringFeature, usize)>) =
-                    features
-                        .iter()
-                        .cloned()
-                        .enumerate()
-                        .filter(|(i, _)| i != &seed_index_a && i != &seed_index_b)
-                        .map(|(_, p)| p)
-                        .partition(|p| seed_a.0.distance_0(&p.0) < seed_b.0.distance_0(&p.0));
+                #[allow(clippy::type_complexity)]
+                let (mut group_a, mut group_b): (
+                    Vec<(ClusteringFeature, usize)>,
+                    Vec<(ClusteringFeature, usize)>,
+                ) = features
+                    .iter()
+                    .cloned()
+                    .enumerate()
+                    .filter(|(i, _)| i != &seed_index_a && i != &seed_index_b)
+                    .map(|(_, p)| p)
+                    .partition(|p| seed_a.0.distance_0(&p.0) < seed_b.0.distance_0(&p.0));
                 group_a.push(seed_a.clone());
                 group_b.push(seed_b.clone());
                 let b_id = self.next_id;
                 self.next_id += 1;
                 let mut split_a = CFNode::NonLeaf {
-                    id: id,
+                    id,
                     features: group_a,
-                    parent_id: parent_id,
+                    parent_id,
                 };
-                group_b.iter_mut().for_each(|(_, i) | {
+                group_b.iter_mut().for_each(|(_, i)| {
                     self.arena[*i].set_parent_id(Some(b_id));
                 });
                 let mut split_b = CFNode::NonLeaf {
                     id: b_id,
                     features: group_b,
-                    parent_id: parent_id,
+                    parent_id,
                 };
                 if let Some(parent_id) = parent_id {
                     // Update parent
@@ -384,15 +437,12 @@ impl CFTree {
                     let sum_b = split_b.sum();
                     self.arena[id] = split_a;
                     self.arena.push(split_b);
-                    match &mut self.arena[parent_id] {
-                        CFNode::NonLeaf { features, .. } => {
-                            features.push((sum_b, b_id));
-                            features.iter_mut().find(|(_, i)| *i == id).unwrap().0 = sum_a;
-                            if features.len() > self.branching_factor {
-                                self.split(parent_id);
-                            }
+                    if let CFNode::NonLeaf { features, .. } = &mut self.arena[parent_id] {
+                        features.push((sum_b, b_id));
+                        features.iter_mut().find(|(_, i)| *i == id).unwrap().0 = sum_a;
+                        if features.len() > self.branching_factor {
+                            self.split(parent_id);
                         }
-                        _ => {}
                     }
                 } else {
                     // Create new root
@@ -420,16 +470,13 @@ impl CFTree {
         let mut current_node_id = node_id;
         while let Some(parent_id) = self.arena[current_node_id].parent_id() {
             let updated_sum = self.arena[current_node_id].sum();
-            match &mut self.arena[parent_id] {
-                CFNode::NonLeaf { features, .. } => {
-                    for (feature, child_id) in features.iter_mut() {
-                        if *child_id == current_node_id {
-                            *feature = updated_sum;
-                            break;
-                        }
+            if let CFNode::NonLeaf { features, .. } = &mut self.arena[parent_id] {
+                for (feature, child_id) in features.iter_mut() {
+                    if *child_id == current_node_id {
+                        *feature = updated_sum;
+                        break;
                     }
                 }
-                _ => {}
             }
             current_node_id = parent_id;
         }
@@ -439,17 +486,31 @@ impl CFTree {
 #[derive(Debug)]
 pub struct Birch {
     tree: CFTree,
+    cluster_count: usize,
 }
 
 impl Birch {
-    pub fn new(threshold: f64, branching_factor: usize) -> Self {
+    pub fn new(threshold: f64, branching_factor: usize, k: usize) -> Self {
         Birch {
             tree: CFTree::new(threshold, branching_factor),
+            cluster_count: k,
         }
     }
 
     pub fn insert(&mut self, instance: Point) {
         self.tree.insert(instance);
+    }
+
+    pub fn global_clustering(&self) -> Vec<(ClusteringFeature, usize)> {
+        let leafs: Vec<&CFNode> = self
+            .tree
+            .arena
+            .iter()
+            .filter(|node| matches!(node, CFNode::Leaf { .. }))
+            .collect();
+        let cfs: Vec<ClusteringFeature> = leafs.iter().map(|leafs| leafs.sum()).collect();
+        let assignments = kmeans(&cfs, self.cluster_count, MAX_ITERATIONS);
+        cfs.iter().cloned().zip(assignments).collect()
     }
 
     pub fn print_tree(&self) {
@@ -460,6 +521,16 @@ impl Birch {
 impl super::DataStreamClusteringAlgorithm for Birch {
     fn insert(&mut self, data: Point) {
         self.insert(data);
+    }
+    fn clusters(&self) -> Vec<super::ClusteringElement> {
+        self.global_clustering()
+            .iter()
+            .map(|(cf, i)| super::ClusteringElement {
+                center: cf.centroid(),
+                radius: cf.radius(),
+                cluster: *i,
+            })
+            .collect()
     }
     fn name(&self) -> String {
         "BIRCH".to_string()
@@ -478,5 +549,21 @@ mod tests {
 
         assert_eq!(cf3.centroid(), vec![2.5]);
         assert_eq!(cf3.radius(), 4.);
+    }
+
+    #[test]
+    fn test_node() {
+        let cfnode = CFNode::Leaf {
+            id: 0,
+            parent_id: None,
+            features: vec![
+                ClusteringFeature::new(vec![2.]),
+                ClusteringFeature::new(vec![3.]),
+                ClusteringFeature::new(vec![4.]),
+            ],
+            prev: None,
+            next: None,
+        };
+        assert_eq!(cfnode.sum().n, 3);
     }
 }

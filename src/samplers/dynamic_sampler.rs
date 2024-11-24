@@ -1,13 +1,11 @@
-use std::f32::consts::E;
-
 use super::Sampler;
 use crate::algorithms::DataStreamClusteringAlgorithm;
 
 const K: usize = 5;
 const MAX_ITERATIONS: usize = 10_000;
 
-pub fn kmeans(data: &Vec<Vec<f64>>, k: usize, max_iterations: usize) -> Vec<usize> {
-    let mut centroids = initialize_centroids(&data, k);
+pub fn kmeans(data: &[Vec<f64>], k: usize, max_iterations: usize) -> Vec<usize> {
+    let mut centroids = initialize_centroids(data, k);
     let mut assignments = vec![0; data.len()];
 
     for _ in 0..max_iterations {
