@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, fmt::Debug};
 
 const L: usize = 20;
-const MAX_ITERATIONS: usize = 10000;
+const MAX_ITERATIONS: usize = 100_000;
 type Point = Vec<f64>;
 
 #[derive(Debug, Clone)]

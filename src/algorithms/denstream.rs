@@ -1,10 +1,10 @@
 // lambda > 0
 const LAMBDA: f64 = 0.2;
 const MI: f64 = 2.0;
-const EPSILON: f64 = 2.;
+const EPSILON: f64 = 2.5;
 const BETA: f64 = 0.6;
 const INIT_N: usize = 100;
-const V: usize = 50;
+const V: usize = 20;
 type Point = Vec<f64>;
 
 fn calculate_t_p() -> usize {
@@ -373,7 +373,7 @@ impl Denstream {
                 cluster.push(current.clone());
 
                 for neighbor in &self.potential_micro_clusters {
-                    if self.is_density_reachable(current, neighbor, EPSILON, MI) {
+                    if self.is_density_reachable(current, neighbor, EPSILON * 2.7, MI) {
                         to_visit.push(neighbor);
                     }
                 }
@@ -405,6 +405,6 @@ impl super::DataStreamClusteringAlgorithm for Denstream {
             .collect()
     }
     fn name(&self) -> String {
-        "Denstream".to_string()
+        "DenStream".to_string()
     }
 }
