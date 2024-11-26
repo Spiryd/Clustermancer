@@ -7,7 +7,7 @@ use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
 /// Memory size
-const Q: usize = 10;
+const Q: usize = 50;
 /// Max kmeans iterations
 const MAX_ITERATIONS: usize = 10_000;
 /// Number of points to initialize the micro-clusters

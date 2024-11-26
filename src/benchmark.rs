@@ -10,8 +10,7 @@ use csv::{ReaderBuilder, Writer};
 use std::fs::File;
 use std::time::Instant;
 
-const PROCESSING_RATE_DATASETS: [&str; 2] = [
-    "benchmark_data/synthetic/random_5k_2d.csv",
+const PROCESSING_RATE_DATASETS: [&str; 1] = [
     "benchmark_data/synthetic/random_5k_4d.csv",
 ];
 
@@ -29,7 +28,7 @@ const DIMENTIONALITY_DATA_SETS: [&str; 8] = [
 type AlorithmFactory = Box<dyn Fn() -> Box<dyn DataStreamClusteringAlgorithm>>;
 type SamplerFactory = Box<dyn Fn(Box<dyn DataStreamClusteringAlgorithm>) -> Box<dyn Sampler>>;
 
-pub fn benchmark_algorithms() {
+pub fn processing_rate_benchmark(){
     let algorithm_factories: Vec<AlorithmFactory> = vec![
         Box::new(|| Box::new(Birch::new(5., 15, 5))),
         Box::new(|| Box::new(CluStream::new())),
@@ -37,14 +36,14 @@ pub fn benchmark_algorithms() {
     ];
 
     // Processing rate benchmark
-    let d = [2, 4];
+    let d = [4];
     let processing_rate_file = File::create("./benchmark_results/processing_rate.csv").unwrap();
     let mut writer = Writer::from_writer(processing_rate_file);
     writer
         .write_record(["algorithm", "dimention", "interval", "record_no"])
         .unwrap();
     for (d_idx, data_set) in PROCESSING_RATE_DATASETS.iter().enumerate() {
-        for _ in 0..5 {
+        for i in 0..8 {
             for factory in algorithm_factories.iter() {
                 let data_file = File::open(data_set).unwrap();
                 let mut rdr = ReaderBuilder::new().from_reader(data_file);
@@ -91,6 +90,14 @@ pub fn benchmark_algorithms() {
     }
     writer.flush().unwrap();
 
+}
+
+pub fn dimentionality_processing_time_benchmark() {
+    let algorithm_factories: Vec<AlorithmFactory> = vec![
+        Box::new(|| Box::new(Birch::new(5., 15, 5))),
+        Box::new(|| Box::new(CluStream::new())),
+        Box::new(|| Box::new(Denstream::new())),
+    ];
     // Dimentionality processing rate benchmark
     let d = [2, 4, 5, 10, 20, 40, 60, 80];
     let dimentionality_file =

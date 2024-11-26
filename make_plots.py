@@ -6,7 +6,7 @@ df = pd.read_csv('benchmark_results/processing_rate.csv')
 df['processing_rate'] = df.apply(
     lambda row: 0 if row['record_no'] == 0 else (10000 / row['interval']) * 1000, axis=1
 )
-df = df[df['dimention'] == 2]
+df = df[df['dimention'] == 4]
 # Group by 'algo' and 'record_no' and calculate the mean processing_rate
 avg_processing_rate = df.groupby(['algorithm', 'record_no'])['processing_rate'].mean().reset_index()
 
