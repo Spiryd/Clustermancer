@@ -1,11 +1,9 @@
 use itertools::Itertools;
-use ordered_float::OrderedFloat;
 use rand::prelude::*;
 use rand_pcg::Pcg64;
 use statrs::distribution::{ContinuousCDF, Normal};
-use std::cmp::Reverse;
-use std::collections::BinaryHeap;
 
+const K: usize = 3;
 /// Memory size
 const Q: usize = 50;
 /// Max kmeans iterations
@@ -22,38 +20,6 @@ const M: usize = 10;
 const ALPHA: usize = 2;
 const L: usize = 2;
 const ALPHA_L: usize = ALPHA.pow(L as u32);
-
-/// Efraimidis and Spirakis's weighted random sampling algorithm
-///
-/// - `n`: is the weights
-/// - `x`: is the number of samples
-///
-/// Returns a vector of indices
-fn weighted_random_sample(n: &[usize], x: usize) -> Vec<usize> {
-    let mut rng = Pcg64::from_entropy();
-    let mut heap = BinaryHeap::with_capacity(n.len());
-
-    for (i, &n_i) in n.iter().enumerate() {
-        if n_i == 0 {
-            continue; // Skip zero weights
-        }
-        let u: f64 = rng.gen_range(f64::MIN_POSITIVE..1.0);
-        let n_i_f64 = n_i as f64;
-        let key = -u.ln() / n_i_f64;
-        heap.push(Reverse((OrderedFloat(key), i)));
-    }
-
-    let mut sampled_indices = Vec::with_capacity(x);
-    for _ in 0..x.min(heap.len()) {
-        if let Some(Reverse((_, i))) = heap.pop() {
-            sampled_indices.push(i);
-        } else {
-            break; // No more items in the heap
-        }
-    }
-
-    sampled_indices
-}
 
 #[derive(Debug, Clone)]
 struct MicroCluster {
@@ -222,7 +188,7 @@ fn kmeans(instances: Vec<Vec<f64>>, k: usize, max_iterations: usize) -> Vec<usiz
 #[derive(Debug, Clone)]
 struct Snapshot {
     timestamp: usize,
-    micro_clusters: Vec<(MicroCluster, Vec<usize>)>,
+    _micro_clusters: Vec<(MicroCluster, Vec<usize>)>,
 }
 
 #[derive(Debug)]
@@ -383,30 +349,36 @@ impl CluStream {
         // Step 3: Create snapshots
         self.snapshot_vault.insert(Snapshot {
             timestamp: self.clock,
-            micro_clusters: self.micro_clusters.clone(),
+            _micro_clusters: self.micro_clusters.clone(),
         });
         // Get ready for the next iteration
         self.clock += 1;
     }
 
-    /// Offline macro-clustering
-    /// - `h`: is the time horizon
-    /// - `k`: is the number of clusters
-    pub fn offline_macro_clustering(&self, h: usize, k: usize) {}
-
-    fn macro_clustering_kmeans(&self, data: Vec<MicroCluster>, k: usize) {
-        let weights: Vec<usize> = data.iter().map(|mc| mc.n).collect();
-        let seeds: Vec<usize> = weighted_random_sample(&weights, k);
-        println!("{:?}", seeds);
+    fn offline_macro_clustering(&self, h: usize, k: usize) -> Vec<Vec<MicroCluster>> {
+        if h == 0 {
+            let micro_clusters: Vec<Vec<f64>> = self
+                .micro_clusters
+                .iter()
+                .map(|(mc, _)| mc.centroid())
+                .collect();
+            let assignments = kmeans(micro_clusters, k, MAX_ITERATIONS);
+            let mut macro_clusters: Vec<Vec<MicroCluster>> = vec![Vec::new(); k];
+            for (i, (mc, _)) in self.micro_clusters.iter().enumerate() {
+                macro_clusters[assignments[i]].push(mc.clone());
+            }
+            return macro_clusters;
+        }
+        Vec::new()
     }
 
-    pub fn pirnt_centroids(&self) {
+    pub fn _pirnt_centroids(&self) {
         for (i, (mc, _)) in self.micro_clusters.iter().enumerate() {
             println!("Centroid {}: {:?}", i, mc.centroid());
         }
     }
 
-    pub fn print_vault(&self) {
+    pub fn _print_vault(&self) {
         for (i, (snapshots, _)) in self.snapshot_vault.snapshots.iter().enumerate() {
             print!("Order {}:", i);
             for snapshot in snapshots.iter().flatten() {
@@ -422,7 +394,17 @@ impl super::DataStreamClusteringAlgorithm for CluStream {
         self.insert(data);
     }
     fn clusters(&self) -> Vec<super::ClusteringElement> {
-        todo!()
+        let mut clusters = Vec::new(); 
+        for (cluster_id, elements) in self.offline_macro_clustering(0, K).iter().enumerate() {
+            for element in elements {
+                clusters.push(super::ClusteringElement {
+                    center: element.centroid(),
+                    radius: element.maximal_boundary().unwrap_or(0.0),
+                    cluster: cluster_id,
+                });
+            }
+        }
+        clusters
     }
     fn name(&self) -> String {
         "CluStream".to_string()

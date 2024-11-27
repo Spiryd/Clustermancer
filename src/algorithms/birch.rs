@@ -205,7 +205,7 @@ impl CFTree {
         }
     }
 
-    fn print(&self) {
+    fn _print(&self) {
         if self.arena.is_empty() {
             return;
         }
@@ -513,8 +513,8 @@ impl Birch {
         cfs.iter().cloned().zip(assignments).collect()
     }
 
-    pub fn print_tree(&self) {
-        self.tree.print();
+    pub fn _print_tree(&self) {
+        self.tree._print();
     }
 }
 

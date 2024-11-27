@@ -10,9 +10,7 @@ use csv::{ReaderBuilder, Writer};
 use std::fs::File;
 use std::time::Instant;
 
-const PROCESSING_RATE_DATASETS: [&str; 1] = [
-    "benchmark_data/synthetic/random_5k_4d.csv",
-];
+const PROCESSING_RATE_DATASETS: [&str; 1] = ["benchmark_data/synthetic/random_5k_4d.csv"];
 
 const DIMENTIONALITY_DATA_SETS: [&str; 8] = [
     "benchmark_data/synthetic/random_5k_2d.csv",
@@ -28,7 +26,7 @@ const DIMENTIONALITY_DATA_SETS: [&str; 8] = [
 type AlorithmFactory = Box<dyn Fn() -> Box<dyn DataStreamClusteringAlgorithm>>;
 type SamplerFactory = Box<dyn Fn(Box<dyn DataStreamClusteringAlgorithm>) -> Box<dyn Sampler>>;
 
-pub fn processing_rate_benchmark(){
+pub fn processing_rate_benchmark() {
     let algorithm_factories: Vec<AlorithmFactory> = vec![
         Box::new(|| Box::new(Birch::new(5., 15, 5))),
         Box::new(|| Box::new(CluStream::new())),
@@ -43,7 +41,7 @@ pub fn processing_rate_benchmark(){
         .write_record(["algorithm", "dimention", "interval", "record_no"])
         .unwrap();
     for (d_idx, data_set) in PROCESSING_RATE_DATASETS.iter().enumerate() {
-        for i in 0..8 {
+        for _ in 0..8 {
             for factory in algorithm_factories.iter() {
                 let data_file = File::open(data_set).unwrap();
                 let mut rdr = ReaderBuilder::new().from_reader(data_file);
@@ -89,7 +87,6 @@ pub fn processing_rate_benchmark(){
         }
     }
     writer.flush().unwrap();
-
 }
 
 pub fn dimentionality_processing_time_benchmark() {
@@ -144,7 +141,7 @@ pub fn demo_algorithms() {
     let data_path = "demos/blobs_demo.csv";
     let algorithm_factories: Vec<AlorithmFactory> = vec![
         Box::new(|| Box::new(Birch::new(2., 10, 3))),
-        //Box::new(|| Box::new(CluStream::new())),
+        Box::new(|| Box::new(CluStream::new())),
         Box::new(|| Box::new(Denstream::new())),
     ];
     for factory in algorithm_factories.iter() {
@@ -195,10 +192,10 @@ pub fn demo_algorithms() {
     let data_paths = ["demos/circles_demo.csv", "demos/moon_demo.csv"];
     let algorithm_factories: Vec<AlorithmFactory> = vec![
         Box::new(|| Box::new(Birch::new(1., 10, 2))),
-        //Box::new(|| Box::new(CluStream::new())),
+        Box::new(|| Box::new(CluStream::new())),
         Box::new(|| Box::new(Denstream::new())),
     ];
-    for (i, data_path) in data_paths.iter().enumerate(){
+    for (i, data_path) in data_paths.iter().enumerate() {
         for factory in algorithm_factories.iter() {
             let mut algorithm = factory();
             // output
