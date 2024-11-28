@@ -14,15 +14,14 @@ Compilation requires the [rust toolchain](https://www.rust-lang.org/tools/instal
 
 ### Algorithms:
 
-- [ ] STREAM
-- [ ] BIRCH
-- [ ] CluStream
+- [x] BIRCH
+- [x] CluStream
 - [x] DenStream
 
 ### Samplers:
 
-- [ ] Uniform
-- [ ] Dynamic
+- [x] Static
+- [x] Dynamic
 
 # Usage
 
