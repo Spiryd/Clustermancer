@@ -3,7 +3,6 @@ use rand::prelude::*;
 use rand_pcg::Pcg64;
 use statrs::distribution::{ContinuousCDF, Normal};
 
-const K: usize = 3;
 /// Memory size
 const Q: usize = 50;
 /// Max kmeans iterations
@@ -239,10 +238,11 @@ pub struct CluStream {
     initial_buffer: Vec<Vec<f64>>,
     clock: usize,
     next_id: usize,
+    k: usize,
 }
 
 impl CluStream {
-    pub fn new() -> Self {
+    pub fn new(k: usize) -> Self {
         CluStream {
             snapshot_vault: SnapshotVault::new(),
             micro_clusters: Vec::new(),
@@ -250,6 +250,7 @@ impl CluStream {
             initial_buffer: Vec::new(),
             clock: 1,
             next_id: 0,
+            k,
         }
     }
 
@@ -394,8 +395,8 @@ impl super::DataStreamClusteringAlgorithm for CluStream {
         self.insert(data);
     }
     fn clusters(&self) -> Vec<super::ClusteringElement> {
-        let mut clusters = Vec::new(); 
-        for (cluster_id, elements) in self.offline_macro_clustering(0, K).iter().enumerate() {
+        let mut clusters = Vec::new();
+        for (cluster_id, elements) in self.offline_macro_clustering(0, self.k).iter().enumerate() {
             for element in elements {
                 clusters.push(super::ClusteringElement {
                     center: element.centroid(),

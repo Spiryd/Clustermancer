@@ -28,6 +28,9 @@ impl Sampler for UniformSampler {
         self.counter += 1;
     }
     fn name(&self) -> String {
-        "UniformSampler".to_string()
+        format!("(UniformSampler, {})", self.algorithm.name())
+    }
+    fn clusters(&self) -> Vec<crate::algorithms::ClusteringElement> {
+        self.algorithm.clusters()
     }
 }

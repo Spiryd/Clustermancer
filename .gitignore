@@ -7,6 +7,7 @@ Cargo.lock
 
 # Misc
 benchmark_data/synthetic
+benchmark_data/real
 benchmark_results
 demos
 demo_results

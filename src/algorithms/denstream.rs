@@ -2,9 +2,9 @@
 const LAMBDA: f64 = 0.2;
 const MI: f64 = 2.0;
 const EPSILON: f64 = 2.5;
-const BETA: f64 = 0.6;
+const BETA: f64 = 0.7;
 const INIT_N: usize = 100;
-const V: usize = 20;
+const V: usize = 100;
 type Point = Vec<f64>;
 
 fn calculate_t_p() -> usize {

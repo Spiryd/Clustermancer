@@ -26,6 +26,9 @@ impl Sampler for StaticSampler {
         }
     }
     fn name(&self) -> String {
-        format!("StaticSampler({})", self.odds)
+        format!("(StaticSampler({}), {})", self.odds, self.algorithm.name())
+    }
+    fn clusters(&self) -> Vec<crate::algorithms::ClusteringElement> {
+        self.algorithm.clusters()
     }
 }
