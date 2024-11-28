@@ -78,7 +78,7 @@ pub fn processing_rate_benchmark() {
                 ));
                 for result in results.iter() {
                     writer
-                        .write_record(&[&result.0, &result.1, &result.2, &result.3])
+                        .write_record([&result.0, &result.1, &result.2, &result.3])
                         .unwrap();
                 }
                 drop(algorithm);
@@ -376,13 +376,13 @@ pub fn processing_rate_samplers_benchmark() {
                     ));
                     for result in results.iter() {
                         pr_writer
-                            .write_record(&[&result.0, &result.1, &result.2, &result.3])
+                            .write_record([&result.0, &result.1, &result.2, &result.3])
                             .unwrap();
                     }
                     let clusters = sampler.clusters();
                     let ssq = ssq(&clusters);
                     quality_writer
-                        .write_record(&[name.as_str(), ssq.to_string().as_str()])
+                        .write_record([name.as_str(), ssq.to_string().as_str()])
                         .unwrap();
                     drop(sampler);
                 }

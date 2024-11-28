@@ -1,5 +1,6 @@
 use super::Sampler;
 use crate::algorithms::DataStreamClusteringAlgorithm;
+use itertools::Itertools;
 use rand::prelude::*;
 use rand_pcg::Pcg64;
 
@@ -135,17 +136,10 @@ impl Sampler for KMeansDynamicSampler {
                         _count: cluster.len(),
                     });
                 }
-                self.max_distance = self
-                    .initial_buffer
-                    .iter()
-                    .map(|point| {
-                        self.assignments
-                            .iter()
-                            .map(|cluster| euclidean_distance(point, &cluster.centroid))
-                            .min_by(|a, b| a.partial_cmp(b).unwrap())
-                            .unwrap()
-                    })
-                    .fold(0.0 / 0.0, f64::max);
+                self.max_distance = 
+                self.initial_buffer.iter().combinations(2).map(|pair| {
+                    euclidean_distance(pair[0], pair[1])
+                }).max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
                 self.initialised = true;
                 self.initial_buffer.clear();
             }
@@ -163,13 +157,11 @@ impl Sampler for KMeansDynamicSampler {
             let probability: f64;
             if min_distance <= 0.0 {
                 probability = BETA;
+            } else if min_distance >= self.max_distance {
+                probability = LAMBDA;
+                self.max_distance = min_distance;
             } else {
-                if min_distance >= self.max_distance {
-                    probability = LAMBDA;
-                    self.max_distance = min_distance;
-                } else {
-                    probability = ALPHA * (min_distance / self.max_distance);
-                }
+                probability = ALPHA * (min_distance / self.max_distance);
             }
             if self.rng.gen_bool(probability) {
                 self.algorithm.insert(data);

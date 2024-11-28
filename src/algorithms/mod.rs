@@ -2,6 +2,7 @@ pub mod birch;
 pub mod clustream;
 pub mod denstream;
 
+#[derive(Clone, Debug)]
 pub struct ClusteringElement {
     pub center: Vec<f64>,
     pub radius: f64,
@@ -9,7 +10,7 @@ pub struct ClusteringElement {
 }
 
 impl ClusteringElement {
-    pub fn distance(&self, other: &Vec<f64>) -> f64 {
+    pub fn distance(&self, other: &[f64]) -> f64 {
         self.center
             .iter()
             .zip(other.iter())
@@ -19,11 +20,11 @@ impl ClusteringElement {
     }
 }
 
-pub fn ssq(clusters: &Vec<ClusteringElement>) -> f64 {
+pub fn ssq(clusters: &[ClusteringElement]) -> f64 {
     let k = clusters
         .iter()
-        .fold(std::collections::HashMap::new(), |mut acc, elem| {
-            acc.entry(elem.cluster).or_insert_with(Vec::new).push(elem);
+        .fold(std::collections::HashMap::new(), |mut acc: std::collections::HashMap<usize, Vec<ClusteringElement>>, elem| {
+            acc.entry(elem.cluster).or_default().push(elem.clone());
             acc
         });
     let mut ssq = 0.;
