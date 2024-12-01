@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Presentations/Prezentacja 3.md",
+                "file": "algorithms/Data Stream Clustering Algorithms.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Prezentacja 3"
+              "title": "Data Stream Clustering Algorithms"
             }
           }
         ],
@@ -178,26 +178,26 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "bfd42ae8be8aaa34",
+  "active": "ebe326d6594a2be3",
   "lastOpenFiles": [
     "algorithms/CluStream.md",
-    "Presentations/Prezentacja 3.md",
-    "algorithms/Data Stream Clustering Algorithms.md",
     "algorithms/BIRCH.md",
+    "key concepts/Concept Drift.md",
+    "key concepts/Time Window.md",
+    "Knowledge Base.md",
     "Presentations/Intro.md",
     "Presentations/Prezentacja 2.md",
+    "Presentations/Prezentacja 3.md",
+    "algorithms/Data Stream Clustering Algorithms.md",
     "Presentations/Spis Treści.md",
-    "Knowledge Base.md",
     "key concepts/Key Concepts.md",
     "Presentations/skrypt.md",
     "Untitled 1.canvas",
     "Untitled.canvas",
     "2024-11-13.md",
     "Presentations/Algorytmy Konsensusu.md",
-    "key concepts/Concept Drift.md",
     "categories/Algorithm Categories.md",
     "Untitled",
-    "key concepts/Time Window.md",
     "[[Key.md",
     "export/Wprowadzenie/plugin/chalkboard/img/whiteboard.png",
     "export/Wprowadzenie/plugin/chalkboard/img/sponge.png",
