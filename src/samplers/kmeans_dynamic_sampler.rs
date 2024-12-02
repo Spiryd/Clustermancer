@@ -5,6 +5,7 @@ use rand::prelude::*;
 use rand_pcg::Pcg64;
 
 const MAX_ITERATIONS: usize = 10_000;
+const DELTA: usize = 1_000;
 const ALPHA: f64 = 1.0;
 const BETA: f64 = 0.5;
 const LAMBDA: f64 = 0.001;
@@ -101,7 +102,7 @@ impl Sampler for KMeansDynamicSampler {
         if !self.initialised {
             self.algorithm.insert(data.clone());
             self.initial_buffer.push(data);
-            if self.initial_buffer.len() >= 1000 {
+            if self.initial_buffer.len() >= DELTA {
                 let kmeans_result = kmeans(&self.initial_buffer, self.k, MAX_ITERATIONS);
                 let mut clusters = vec![Vec::new(); self.k];
                 for (assignment, point) in kmeans_result.iter().zip(self.initial_buffer.iter()) {
