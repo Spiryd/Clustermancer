@@ -8,7 +8,7 @@ Maksymilian Neumann
 
 # Requirements
 
-Compilation requires the [rust toolchain](https://www.rust-lang.org/tools/install) and an internet connection.
+- Compilation requires the [rust toolchain](https://www.rust-lang.org/tools/install) and an internet connection.
 
 # Implementations
 

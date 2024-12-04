@@ -1,8 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
+from sklearn.cluster import KMeans, DBSCAN
 import time
+from pathlib import Path
 
 def cluster_and_time(data, algorithm_name, algorithm):
     """
@@ -38,22 +39,21 @@ def plot_clusters(data, labels, title, algorithm_name):
 
 def main():
     # Load the data
-    input_file = "demos/circles_demo.csv"  # Replace with your generated file path
-    df = pd.read_csv(input_file)
-    data = df[['x', 'y']].values
-
-    # Algorithms to use
-    algorithms = {
-        "K-Means (k=2)": KMeans(n_clusters=2, random_state=42, max_iter=10000),
-        "DBSCAN (eps=3)": DBSCAN(eps=3, min_samples=5),
-    }
-
-    # Perform clustering and time each algorithm
-    for algorithm_name, algorithm in algorithms.items():
-        print(f"Clustering with {algorithm_name}...")
-        labels, duration = cluster_and_time(data, algorithm_name, algorithm)
-        print(f"Execution time for {algorithm_name}: {duration:.4f} seconds")
-        plot_clusters(data, labels, f"{algorithm_name} (Time: {duration:.4f}s)", algorithm_name)
+    input_folder = Path("./demos")
+    for input_file in input_folder.glob("*.csv"):
+        df = pd.read_csv(input_file)
+        data = df[['x', 'y']].values
+        # Algorithms to use
+        algorithms = {
+            "K-Means (k=2)": KMeans(n_clusters=2, random_state=42, max_iter=100000),
+            "DBSCAN (eps=3)": DBSCAN(eps=3, min_samples=5),
+        }
+        # Perform clustering and time each algorithm
+        for algorithm_name, algorithm in algorithms.items():
+            print(f"Clustering with {algorithm_name}...")
+            labels, duration = cluster_and_time(data, algorithm_name, algorithm)
+            print(f"Execution time for {algorithm_name}: {duration:.4f} seconds")
+            plot_clusters(data, labels, f"{algorithm_name} (Time: {duration:.4f}s)", algorithm_name)
 
 if __name__ == "__main__":
     main()
