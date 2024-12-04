@@ -321,6 +321,7 @@ pub fn processing_rate_samplers_benchmark() {
     let sampler_factories: Vec<SamplerFactory> = vec![
         // Box::new(|algorithm| Box::new(UniformSampler::new(algorithm))),
         Box::new(|algorithm| Box::new(StaticSampler::new(algorithm, 0.3))),
+        Box::new(|algorithm| Box::new(StaticSampler::new(algorithm, 0.1))),
         Box::new(|algorithm| Box::new(KMeansDynamicSampler::new(algorithm, 5))),
     ];
 
@@ -404,6 +405,7 @@ pub fn demo_samplers() {
     let sampler_factories: Vec<SamplerFactory> = vec![
         // Box::new(|algorithm| Box::new(UniformSampler::new(algorithm))),
         Box::new(|algorithm| Box::new(StaticSampler::new(algorithm, 0.3))),
+        Box::new(|algorithm| Box::new(StaticSampler::new(algorithm, 0.1))),
         Box::new(|algorithm| Box::new(KMeansDynamicSampler::new(algorithm, 3))),
     ];
     for factory in algorithm_factories.iter() {
@@ -461,6 +463,7 @@ pub fn demo_samplers() {
     let sampler_factories: Vec<SamplerFactory> = vec![
         // Box::new(|algorithm| Box::new(UniformSampler::new(algorithm))),
         Box::new(|algorithm| Box::new(StaticSampler::new(algorithm, 0.3))),
+        Box::new(|algorithm| Box::new(StaticSampler::new(algorithm, 0.1))),
         Box::new(|algorithm| Box::new(KMeansDynamicSampler::new(algorithm, 2))),
     ];
     let demo_names = ["circles", "moons"];
@@ -514,4 +517,51 @@ pub fn demo_samplers() {
             }
         }
     }
+}
+
+pub fn samplers_real_quality_benchmark(){
+    let algorithm_factories: Vec<AlorithmFactory> = vec![
+        Box::new(|| Box::new(Birch::new(2., 50, 2))),
+        Box::new(|| Box::new(CluStream::new(2))),
+        Box::new(|| Box::new(Denstream::new())),
+    ];
+
+    let sampler_factories: Vec<SamplerFactory> = vec![
+        // Box::new(|algorithm| Box::new(UniformSampler::new(algorithm))),
+        Box::new(|algorithm| Box::new(StaticSampler::new(algorithm, 0.3))),
+        Box::new(|algorithm| Box::new(KMeansDynamicSampler::new(algorithm, 2))),
+    ];
+
+    let data_set = "benchmark_data/real/converted_RT_IOT2022_10.csv";
+    let output_file = File::create("./benchmark_results/real_quality_samplers.csv").unwrap();
+    let mut writer = Writer::from_writer(output_file);
+    writer.write_record(["algorithm", "sampler", "SSQ"]).unwrap();
+
+    for factory in algorithm_factories.iter() {
+        for sampler_factory in sampler_factories.iter() {
+            let algorithm = factory();
+            let mut sampler = sampler_factory(algorithm);
+            let name = sampler.name();
+            // input
+            let data_file = File::open(data_set).unwrap();
+            let mut rdr = ReaderBuilder::new().from_reader(data_file);
+            // demo
+            let start = Instant::now();
+            for result in rdr.records() {
+                let record: Vec<f64> = result.unwrap().iter().map(|s| s.parse().unwrap()).collect();
+                sampler.insert(record);
+            }
+            let clusters = sampler.clusters();
+            let ssq = ssq(&clusters);
+            writer
+                .write_record(&[sampler.name(), name.clone(), ssq.to_string()])
+                .unwrap();
+            println!(
+                "RealQualitySamplerBenchmark(Sampler: {:?} Dataset: RT_IOT2022, Time: {:?})",
+                name,
+                start.elapsed()
+            );
+        }
+    }
+    writer.flush().unwrap();
 }

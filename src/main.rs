@@ -12,6 +12,7 @@ fn main() {
         "Benchmark quality(real data)",
         "Benchmark quality(synthetic data)",
         "Benchmark algorithms with samplers",
+        "Benchmark samplers quality(real data)",
         "Demo algorithms",
         "Demo samplers",
         "Exit",
@@ -28,8 +29,9 @@ fn main() {
         2 => real_quality_benchmark(),
         3 => synthetic_quality_benchmark(),
         4 => processing_rate_samplers_benchmark(),
-        5 => demo_algorithms(),
-        6 => demo_samplers(),
+        5 => samplers_real_quality_benchmark(),
+        6 => demo_algorithms(),
+        7 => demo_samplers(),
         _ => (),
     }
 }
