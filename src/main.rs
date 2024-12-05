@@ -15,6 +15,7 @@ fn main() {
         "Benchmark samplers quality(real data)",
         "Demo algorithms",
         "Demo samplers",
+        "All",
         "Exit",
     ];
     let selection = Select::with_theme(&ColorfulTheme::default())
@@ -32,6 +33,16 @@ fn main() {
         5 => samplers_real_quality_benchmark(),
         6 => demo_algorithms(),
         7 => demo_samplers(),
+        8 => {
+            processing_rate_benchmark();
+            dimentionality_processing_time_benchmark();
+            real_quality_benchmark();
+            synthetic_quality_benchmark();
+            processing_rate_samplers_benchmark();
+            samplers_real_quality_benchmark();
+            demo_algorithms();
+            demo_samplers();
+        }
         _ => (),
     }
 }

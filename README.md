@@ -8,7 +8,33 @@ Maksymilian Neumann
 
 # Requirements
 
-- Compilation requires the [rust toolchain](https://www.rust-lang.org/tools/install) and an internet connection.
+1. Internet connection
+2. [Rust toolchain](https://www.rust-lang.org/tools/install)
+3. Python 3.12
+4. Install python libraries
+````bash
+pip install -r requirements.txt
+````
+5. Generate data
+````bash
+python gen_all_data.py
+````
+
+# Usage
+
+1. Run
+````bash
+cargo run -r
+````
+2. Choose any benchmarks or run all
+3. Plot to see results in ./plots
+````bash
+python gen_all_plots.py
+````
+4. (Optional) generate demo results for k-means and DBSCAN as a comparison
+````bash
+python classic_demo.py
+````
 
 # Implementations
 
@@ -23,8 +49,7 @@ Maksymilian Neumann
 - [x] Static
 - [x] Dynamic
 
-# Usage
+# Data Used
+Real data used:
 
-````
-$ cargo run -r
-````
+B. S. and R. Nagapadma. "RT-IoT2022 ," UCI Machine Learning Repository, 2023. [Online]. Available: https://doi.org/10.24432/C5P338.
