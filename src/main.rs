@@ -5,7 +5,11 @@ use benchmark::*;
 
 use dialoguer::{theme::ColorfulTheme, Select};
 
+use std::fs;
+
 fn main() {
+    fs::create_dir_all("./benchmark_results").unwrap();
+    fs::create_dir_all("./demo_results").unwrap();
     let options = [
         "Benchmark algorithms",
         "Benchmark algorithms with different dimentionality",
